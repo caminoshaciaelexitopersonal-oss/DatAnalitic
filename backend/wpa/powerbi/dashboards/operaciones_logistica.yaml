@@ -1,0 +1,33 @@
+id: operaciones_logistica
+title: "Operaciones & Logística"
+category: operaciones
+layout:
+  grid:
+    columns: 12
+  widgets:
+    - id: tiempos_entrega
+      type: line
+      title: "Tiempos de Entrega"
+      dataset: logistico_tiempos.csv
+      xField: fecha
+      yField: dias
+      width: 12
+      height: 3
+    - id: pedidos_por_ciudad
+      type: bar
+      title: "Pedidos por Ciudad"
+      dataset: logistico_pedidos.csv
+      xField: ciudad
+      yField: total
+      agg:
+        total: sum
+      group_by: [ciudad]
+      width: 6
+      height: 3
+    - id: mapa_rutas
+      type: table
+      title: "Rutas activas del día"
+      dataset: logistico_rutas.csv
+      width: 12
+      height: 3
+      row: 7

@@ -1,0 +1,1 @@
+from pydantic import BaseModel\nclass DataQueryRequest(BaseModel):\n    query: str\n    source: str = "local"\n

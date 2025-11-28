@@ -1,0 +1,1 @@
+def generate_features(df):\n    return df\n

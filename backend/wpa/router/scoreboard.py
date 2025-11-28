@@ -1,0 +1,1 @@
+def snapshot_scoreboard():\n    return []\n

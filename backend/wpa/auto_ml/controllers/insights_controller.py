@@ -1,0 +1,1 @@
+def get_insights(job_id):\n    return {}\n

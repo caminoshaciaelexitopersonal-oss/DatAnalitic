@@ -1,0 +1,1 @@
+def clean(df):\n    """Return cleaned df"""\n    return df\n

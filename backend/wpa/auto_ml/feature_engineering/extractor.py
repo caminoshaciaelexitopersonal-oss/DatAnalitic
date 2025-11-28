@@ -1,0 +1,1 @@
+def extract_features(df):\n    return df\n

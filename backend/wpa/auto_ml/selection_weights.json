@@ -1,0 +1,13 @@
+{
+    "weights": {
+        "cv_mean_accuracy": 1.0,
+        "cv_mean_f1_score": 1.0,
+        "cv_mean_r2_score": 1.0,
+        "demographic_parity_difference": -0.5,
+        "equalized_odds_difference": -0.5,
+        "fit_time": -0.1
+    },
+    "normalization_factors": {
+        "fit_time": 60
+    }
+}

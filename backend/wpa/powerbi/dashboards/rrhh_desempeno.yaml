@@ -1,0 +1,34 @@
+id: rrhh_desempeno
+title: "Desempeño de Talento Humano"
+category: rrhh
+layout:
+  grid:
+    columns: 12
+  widgets:
+    - id: kpi_rotacion
+      type: kpi
+      title: "Rotación (%)"
+      dataset: rrhh_empleados.csv
+      yField: rotacion
+      agg_func: mean
+      width: 3
+      height: 2
+    - id: desempeño_por_area
+      type: bar
+      title: "Desempeño por Área"
+      dataset: rrhh_desempeno.csv
+      xField: area
+      series: [score]
+      group_by: [area]
+      agg:
+        score: mean
+      width: 6
+      height: 3
+      col: 4
+    - id: mapa_calor_asistencia
+      type: table
+      title: "Asistencia (últimos 30 días)"
+      dataset: rrhh_asistencia.csv
+      width: 12
+      height: 4
+      row: 4

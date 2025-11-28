@@ -1,0 +1,53 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend
+  namespace: sadi-system
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: backend
+  template:
+    metadata:
+      labels:
+        app: backend
+    spec:
+      containers:
+      - name: backend-api
+        image: sadi-backend:latest # Assumes the image is built and available
+        command: ["uvicorn", "backend.main:app", "--host", "0.0.0.0", "--port", "8000"]
+        ports:
+        - containerPort: 8000
+        env:
+          - name: MLFLOW_TRACKING_URI
+            value: "http://mlflow-service:5000"
+          - name: SECRET_KEY
+            valueFrom:
+              secretKeyRef:
+                name: sadi-secrets
+                key: secret_key
+      - name: backend-worker
+        image: sadi-backend:latest # Assumes the image is built and available
+        command: ["celery", "-A", "backend.celery_worker.celery_app", "worker", "--loglevel=info"]
+        env:
+          - name: MLFLOW_TRACKING_URI
+            value: "http://mlflow-service:5000"
+          - name: GOOGLE_API_KEY
+            valueFrom:
+              secretKeyRef:
+                name: sadi-secrets
+                key: google_api_key
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend-service
+  namespace: sadi-system
+spec:
+  selector:
+    app: backend
+  ports:
+    - protocol: TCP
+      port: 8000
+      targetPort: 8000

@@ -1,0 +1,1 @@
+from pydantic import BaseModel\nclass WidgetConfig(BaseModel):\n    id: str\n    type: str\n\nclass DashboardConfig(BaseModel):\n    id: str\n    title: str\n

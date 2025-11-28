@@ -1,0 +1,1 @@
+def safe_add_image(doc, img_path, width=None):\n    pass\n

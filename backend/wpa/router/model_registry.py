@@ -1,0 +1,1 @@
+def register_model(k, meta):\n    print("registered",k)\n

@@ -1,0 +1,32 @@
+automl:
+  # --- General Settings ---
+  max_runtime_minutes: 60
+  validation_split: 0.2
+  scoring_metric: "auto" # 'auto' or a specific scikit-learn metric like 'f1_weighted' or 'neg_mean_squared_error'
+
+  # --- Model Selection Strategy ---
+  # 'include': run only the models listed
+  # 'exclude': run all registered models except those listed
+  # 'all': run all registered models
+  model_selection_strategy: 'include'
+  models:
+    - 'logistic_regression'
+    - 'random_forest_classifier'
+    - 'lightgbm_classifier'
+    - 'xgboost_classifier'
+
+  # --- Hyperparameter Optimization (HPO) Settings ---
+  hpo:
+    enabled: true
+    n_trials: 25 # Number of trials for Optuna to run for each model
+    timeout_per_trial: 600 # Timeout in seconds for a single trial
+    sampler: 'TPE' # 'TPE' (Tree-structured Parzen Estimator), 'Random', or 'Grid'
+    pruner: 'Median' # 'Median', 'Hyperband', or 'None'
+
+  # --- Feature Engineering ---
+  feature_engineering:
+    enabled: true
+    text_feature_extraction: 'tfidf' # 'tfidf' or 'count'
+    polynomial_features:
+      enabled: false
+      degree: 2

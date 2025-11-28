@@ -1,0 +1,93 @@
+{
+  "id": "main_dashboard",
+  "title": "Análisis Integral — Estilo Power BI",
+  "dataset": "sales_data",
+  "filters": {
+    "regional": ["North", "South", "East", "West"],
+    "year": [2021, 2022, 2023]
+  },
+
+  "layout": {
+    "widgets": [
+      {
+        "id": "kpi_total_sales",
+        "type": "kpi",
+        "xField": null,
+        "yField": "total_sales",
+        "query": "SELECT SUM(amount) AS total_sales FROM sales_data",
+        "config": { "label": "Ventas Totales" }
+      },
+      {
+        "id": "kpi_avg_ticket",
+        "type": "kpi",
+        "xField": null,
+        "yField": "avg_ticket",
+        "query": "SELECT AVG(amount) AS avg_ticket FROM sales_data",
+        "config": { "label": "Ticket Promedio" }
+      },
+
+      {
+        "id": "bar_sales_region",
+        "type": "bar",
+        "xField": "region",
+        "series": ["total"],
+        "query": "SELECT region, SUM(amount) as total FROM sales_data GROUP BY region"
+      },
+
+      {
+        "id": "line_sales_month",
+        "type": "line",
+        "xField": "month",
+        "series": ["sales"],
+        "query": "SELECT month, SUM(amount) AS sales FROM sales_data GROUP BY month"
+      },
+
+      {
+        "id": "area_profit_trend",
+        "type": "area",
+        "xField": "month",
+        "series": ["profit"],
+        "query": "SELECT month, SUM(profit) AS profit FROM sales_data GROUP BY month"
+      },
+
+      {
+        "id": "pie_products",
+        "type": "pie",
+        "xField": "product",
+        "yField": "total",
+        "query": "SELECT product, SUM(amount) AS total FROM sales_data GROUP BY product"
+      },
+
+      {
+        "id": "donut_channels",
+        "type": "pie",
+        "xField": "channel",
+        "yField": "total",
+        "config": { "variant": "donut" },
+        "query": "SELECT channel, SUM(amount) AS total FROM sales_data GROUP BY channel"
+      },
+
+      {
+        "id": "radar_segments",
+        "type": "radar",
+        "xField": "segment",
+        "series": ["score"],
+        "query": "SELECT segment, AVG(score) AS score FROM customer_segments GROUP BY segment"
+      },
+
+      {
+        "id": "scatter_corr",
+        "type": "scatter",
+        "xField": "amount",
+        "yField": "profit",
+        "query": "SELECT amount, profit FROM sales_data LIMIT 500"
+      },
+
+      {
+        "id": "table_top_clients",
+        "type": "table",
+        "query": "SELECT client, amount, profit, region FROM sales_data ORDER BY amount DESC LIMIT 20"
+      }
+    ]
+  }
+}

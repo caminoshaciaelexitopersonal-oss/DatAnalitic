@@ -1,0 +1,33 @@
+id: finanzas_estado
+title: "Estados Financieros Ejecutivos"
+category: finanzas
+layout:
+  grid:
+    columns: 12
+  widgets:
+    - id: kpi_ingresos
+      type: kpi
+      title: "Ingresos Totales"
+      dataset: finanzas.csv
+      yField: ingresos
+      agg_func: sum
+      width: 3
+      height: 2
+    - id: kpi_gastos
+      type: kpi
+      title: "Gastos Totales"
+      dataset: finanzas.csv
+      yField: gastos
+      agg_func: sum
+      width: 3
+      height: 2
+      col: 4
+    - id: graf_balance
+      type: area
+      title: "Balance Mensual"
+      dataset: finanzas.csv
+      xField: mes
+      series: [ingresos, gastos]
+      width: 12
+      height: 4
+      row: 3

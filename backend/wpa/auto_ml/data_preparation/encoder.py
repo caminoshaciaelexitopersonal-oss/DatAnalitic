@@ -1,0 +1,1 @@
+def encode(df):\n    """Encode categorical features"""\n    return df\n

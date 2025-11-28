@@ -1,0 +1,1 @@
+def route_prediction(payload, policy, params):\n    return {"model_key": None, "prediction": None}\n

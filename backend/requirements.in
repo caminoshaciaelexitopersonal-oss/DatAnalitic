@@ -1,0 +1,65 @@
+# High-level application dependencies
+fastapi==0.110.0
+pydantic==2.7.4
+pydantic-core==2.18.4
+uvicorn[standard]
+pandas
+scikit-learn
+langchain<0.1,>=0.0.354
+langchain-openai
+langchain-google-genai>=1.0.1
+langchain-experimental
+langchainhub
+celery
+redis
+
+# Database and Storage
+sqlalchemy
+psycopg2-binary
+boto3
+
+# High-level utility dependencies
+python-multipart
+openpyxl
+chardet
+passlib[bcrypt]
+python-jose[cryptography]
+tabulate
+optuna
+scipy
+matplotlib
+seaborn
+prometheus-fastapi-instrumentator
+httpx
+xlsxwriter
+mlflow
+xgboost
+lightgbm
+catboost
+prophet
+shap
+python-docx
+docx2pdf
+statsmodels
+nbformat
+python-magic
+fairlearn
+fpdf2
+
+# Testing dependencies
+pytest
+pytest-asyncio
+jellyfish
+rapidfuzz
+pyarrow
+
+# PowerBI Module dependencies
+google-auth
+google-auth-oauthlib
+google-api-python-client
+gspread
+gspread-dataframe
+msal
+requests
+pyyaml
+s3fs
