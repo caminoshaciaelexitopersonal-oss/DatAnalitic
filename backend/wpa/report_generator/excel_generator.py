@@ -1,24 +1,27 @@
 import pandas as pd
-import os
-import json
+from io import BytesIO
+from backend.core.state_store import StateStore
 
-def create_excel(job_id, out_base):
+def create_excel_report(job_id: str, state_store: StateStore) -> bytes:
     """
-    Creates an Excel report for the specified job.
+    Creates an Excel report in-memory using artifacts from the StateStore.
     """
-    output_path = os.path.join(out_base, f"report_{job_id}.xlsx")
-    with pd.ExcelWriter(output_path) as writer:
+    output_stream = BytesIO()
+    with pd.ExcelWriter(output_stream, engine='xlsxwriter') as writer:
         # Add EDA summary
-        eda_summary_path = os.path.join(out_base, "eda_summary.json")
-        if os.path.exists(eda_summary_path):
-            with open(eda_summary_path, "r") as f:
-                eda_summary = json.load(f)
-                pd.DataFrame.from_dict(eda_summary, orient='index').to_excel(writer, sheet_name='EDA Summary')
+        eda_summary = state_store.load_json_artifact(job_id, "eda/summary_statistics.json")
+        if eda_summary:
+            pd.DataFrame.from_dict(eda_summary, orient='index').to_excel(writer, sheet_name='EDA Summary')
 
-        # Add model results
-        model_results_path = os.path.join(out_base, "model_results.json")
-        if os.path.exists(model_results_path):
-            with open(model_results_path, "r") as f:
-                model_results = json.load(f)
-                pd.DataFrame(model_results).to_excel(writer, sheet_name='Model Results')
-    return output_path
+        # Add target detection results
+        target_info = state_store.load_json_artifact(job_id, "target.json")
+        if target_info:
+            pd.DataFrame([target_info]).to_excel(writer, sheet_name='Target Detection')
+
+        # Add SHAP summary
+        shap_summary = state_store.load_json_artifact(job_id, "explainability/shap_summary.json")
+        if shap_summary:
+            pd.DataFrame(shap_summary).to_excel(writer, sheet_name='SHAP Summary')
+
+    output_stream.seek(0)
+    return output_stream.getvalue()

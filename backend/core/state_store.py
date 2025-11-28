@@ -7,7 +7,7 @@ import redis
 import boto3
 from botocore.client import Config
  
-from sqlalchemy import create_engine, Column, String, DateTime, ForeignKey, Text, JSON, Float
+from sqlalchemy import create_engine, Column, String, DateTime, ForeignKey, Text, JSON, Float, Boolean
  
 from sqlalchemy.orm import sessionmaker, relationship, declarative_base, Session
 from sqlalchemy.dialects.postgresql import UUID
@@ -238,6 +238,17 @@ class StateStore:
                 return False
             raise
 
+ 
+    def load_artifact_as_bytes(self, job_id: str, artifact_name: str) -> Optional[bytes]:
+        """Loads any artifact from MinIO and returns it as raw bytes."""
+        key = f"processed/{job_id}/{artifact_name}"
+        try:
+            response = self.s3_client.get_object(Bucket=MINIO_BUCKET, Key=key)
+            return response['Body'].read()
+        except self.s3_client.exceptions.NoSuchKey:
+            return None
+
+ 
 # --- Dependency Injector ---
 @lru_cache()
 def get_state_store() -> StateStore:
