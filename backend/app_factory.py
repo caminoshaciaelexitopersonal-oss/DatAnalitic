@@ -27,7 +27,9 @@ def create_app():
 
     app.add_middleware(HardeningMiddleware)
 
-    origins = os.getenv("ALLOWED_ORIGINS", "*").split(",")
+    # Restrictive CORS for security. Production origins should be explicitly set.
+    default_origins = "http://localhost:8080,http://127.0.0.1:8080"
+    origins = os.getenv("ALLOWED_ORIGINS", default_origins).split(",")
     app.add_middleware(
         CORSMiddleware,
         allow_origins=origins,
@@ -62,6 +64,14 @@ def create_app():
 
     @app.on_event("startup")
     async def startup_event():
+        # Initialize database and default admin user
+        from backend.core.state_store import get_state_store
+        from backend.core.security import initialize_default_admin
+
+        state_store = get_state_store()
+        with state_store.session_scope() as db:
+            initialize_default_admin(db)
+
         print("--- Registered Routes ---")
         for route in app.routes:
             if hasattr(route, "methods"):

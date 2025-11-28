@@ -11,8 +11,7 @@ from passlib.context import CryptContext
 from sqlalchemy.orm import Session
 
 from backend.schemas import User, TokenData, Role
-from backend.core.state_store import StateStore, get_state_store, DATABASE_URL # Import db components
-from sqlalchemy import create_engine, text
+from backend.core.state_store import StateStore, get_state_store, UserModel
 
 # --- Configuration ---
 SECRET_KEY = os.getenv("SECRET_KEY")
@@ -25,47 +24,31 @@ ACCESS_TOKEN_EXPIRE_MINUTES = 30
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/token")
 
-# --- Database Setup for Users ---
-engine = create_engine(DATABASE_URL)
+# --- Database Initialization Logic ---
+def initialize_default_admin(db: Session):
+    """
+    Checks for and creates a default admin user if one doesn't exist.
+    This function should be called during application startup.
+    """
+    admin_user = db.query(UserModel).filter(UserModel.username == "admin").first()
+    if not admin_user:
+        default_password = os.getenv("DEFAULT_ADMIN_PASSWORD")
+        if not default_password:
+            print("WARNING: DEFAULT_ADMIN_PASSWORD not set. Skipping default admin creation.")
+            return
 
-def initialize_user_table():
-    with engine.connect() as connection:
-        connection.execute(text("""
-        CREATE TABLE IF NOT EXISTS users (
-            username TEXT PRIMARY KEY,
-            full_name TEXT,
-            email TEXT,
-            hashed_password TEXT,
-            role TEXT,
-            disabled BOOLEAN DEFAULT FALSE
+        hashed_password = pwd_context.hash(default_password)
+        new_admin = UserModel(
+            username="admin",
+            full_name="Admin User",
+            email="admin@example.com",
+            hashed_password=hashed_password,
+            role="admin",
+            disabled=False
         )
-        """))
-        # Add a default admin user if it doesn't exist
-        result = connection.execute(text("SELECT * FROM users WHERE username = :username"), {"username": "admin"}).fetchone()
-        if not result:
-            default_password = os.getenv("DEFAULT_ADMIN_PASSWORD", "admin_password_placeholder")
-            if default_password == "admin_password_placeholder" or not default_password:
-                print("WARNING: DEFAULT_ADMIN_PASSWORD not set. Skipping default admin creation.")
-                return
-
-            hashed_password = pwd_context.hash(default_password)
-            connection.execute(
-                text("""
-                INSERT INTO users (username, full_name, email, hashed_password, role, disabled)
-                VALUES (:username, :full_name, :email, :hashed_password, :role, :disabled)
-                """),
-                {
-                    "username": "admin",
-                    "full_name": "Admin User",
-                    "email": "admin@example.com",
-                    "hashed_password": hashed_password,
-                    "role": "admin",
-                    "disabled": False,
-                }
-            )
-            print("Default admin user created.")
-
-initialize_user_table()
+        db.add(new_admin)
+        db.commit()
+        print("Default admin user created.")
 
 
 # --- Utility Functions ---
@@ -73,7 +56,6 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
     return pwd_context.verify(plain_password, hashed_password)
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
-    # ... (same as before)
     to_encode = data.copy()
     if expires_delta:
         expire = datetime.utcnow() + expires_delta
@@ -83,14 +65,9 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
 
-
-def get_user_from_db(db: Session, username: str) -> Optional[User]:
-    """Retrieves a user from the database."""
-    query = text("SELECT * FROM users WHERE username = :username")
-    user_data = db.execute(query, {"username": username}).fetchone()
-    if not user_data:
-        return None
-    return User(**user_data._asdict())
+def get_user_from_db(db: Session, username: str) -> Optional[UserModel]:
+    """Retrieves a user from the database using the ORM."""
+    return db.query(UserModel).filter(UserModel.username == username).first()
 
 
 # --- FastAPI Dependencies ---

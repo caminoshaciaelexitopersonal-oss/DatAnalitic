@@ -61,7 +61,15 @@ class ModelScoreboardModel(Base):
     metrics = Column(JSON)
     artifact_path = Column(String)
     created_at = Column(DateTime, default=datetime.utcnow)
- 
+
+class UserModel(Base):
+    __tablename__ = "users"
+    username = Column(String, primary_key=True, index=True)
+    full_name = Column(String)
+    email = Column(String, unique=True, index=True)
+    hashed_password = Column(String)
+    role = Column(String, default="viewer") # e.g., admin, viewer, editor
+    disabled = Column(Boolean, default=False)
 
 # --- StateStore Service ---
 class StateStore:
@@ -188,10 +196,47 @@ class StateStore:
 
     def save_schema_metadata(self, job_id: str, metadata: Dict[str, Any]):
         """Saves the schema validation metadata to MinIO."""
-        metadata_bytes = json.dumps(metadata, indent=2).encode('utf-8')
-        buffer = BytesIO(metadata_bytes)
-        key = f"processed/{job_id}/metadata.json"
+        self.save_json_artifact(job_id, "metadata.json", metadata)
+
+    def save_json_artifact(self, job_id: str, artifact_name: str, data: Dict[str, Any]):
+        """Saves a Python dictionary as a JSON file to MinIO."""
+        json_bytes = json.dumps(data, indent=2).encode('utf-8')
+        key = f"processed/{job_id}/{artifact_name}"
+        self.s3_client.put_object(Bucket=MINIO_BUCKET, Key=key, Body=BytesIO(json_bytes))
+
+    def load_json_artifact(self, job_id: str, artifact_name: str) -> Optional[Dict[str, Any]]:
+        """Loads a JSON artifact from MinIO and returns it as a dictionary."""
+        key = f"processed/{job_id}/{artifact_name}"
+        try:
+            response = self.s3_client.get_object(Bucket=MINIO_BUCKET, Key=key)
+            content = response['Body'].read()
+            return json.loads(content)
+        except self.s3_client.exceptions.NoSuchKey:
+            return None
+
+    def save_figure_artifact(self, job_id: str, artifact_name: str, fig):
+        """Saves a matplotlib figure to MinIO."""
+        buffer = BytesIO()
+        fig.savefig(buffer, format='png', bbox_inches='tight')
+        buffer.seek(0)
+        key = f"processed/{job_id}/{artifact_name}"
         self.s3_client.put_object(Bucket=MINIO_BUCKET, Key=key, Body=buffer)
+
+    def save_report_artifact(self, job_id: str, artifact_name: str, content: bytes):
+        """Saves a generated report (e.g., DOCX, PDF) to MinIO."""
+        key = f"processed/{job_id}/reports/{artifact_name}"
+        self.s3_client.put_object(Bucket=MINIO_BUCKET, Key=key, Body=content)
+
+    def artifact_exists(self, job_id: str, artifact_name: str) -> bool:
+        """Checks if a given artifact exists in MinIO."""
+        key = f"processed/{job_id}/{artifact_name}"
+        try:
+            self.s3_client.head_object(Bucket=MINIO_BUCKET, Key=key)
+            return True
+        except self.s3_client.exceptions.ClientError as e:
+            if e.response['Error']['Code'] == '404':
+                return False
+            raise
 
 # --- Dependency Injector ---
 @lru_cache()
