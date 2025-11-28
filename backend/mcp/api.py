@@ -58,44 +58,40 @@ def get_job_status_unified(job_id: str, service: StateStore = Depends(get_state_
     return status
 
 @router.get("/job/{job_id}/results", operation_id="getJobResults")
-def get_job_results(job_id: str):
+def get_job_results(job_id: str, service: StateStore = Depends(get_state_store)):
     """
-    Retrieves a consolidated summary of the job results for the frontend.
+    Retrieves a consolidated summary of the job results from the StateStore for the frontend.
     """
-    job_dir = os.path.join(config.PROCESSED_DATA_DIR, job_id)
-    manifest_path = os.path.join(job_dir, "manifest.json")
-
-    if not os.path.exists(manifest_path):
+    manifest = service.load_json_artifact(job_id, "manifest.json")
+    if not manifest:
         raise HTTPException(status_code=404, detail="Job manifest not found.")
 
-    with open(manifest_path, "r") as f:
-        manifest = json.load(f)
-
-    # Extract key information for the frontend
-    target_info_path = os.path.join(job_dir, "target.json")
-    target_info = {}
-    if os.path.exists(target_info_path):
-        with open(target_info_path, "r") as f:
-            target_data = json.load(f)
-            target_info = {
-                "selected_target": target_data.get("selected_target"),
-                "confidence": target_data.get("confidence"),
-                "explanation": target_data.get("explanation"),
-                "candidates": target_data.get("candidates")
-            }
+    target_data = service.load_json_artifact(job_id, "target.json")
+    target_info = {
+        "selected_target": target_data.get("selected_target") if target_data else None,
+        "confidence": target_data.get("confidence") if target_data else 0.0,
+        "explanation": target_data.get("explanation") if target_data else "Target information not available.",
+        "candidates": target_data.get("candidates") if target_data else [],
+    }
 
     # Construct download URLs for reports
+    # This logic assumes a future implementation where report paths are stored in the manifest.
     report_urls = {}
     if "reports" in manifest:
         for format, rel_path in manifest["reports"].items():
             if format != "generated_at":
                 report_urls[format] = f"/unified/v1/wpa/auto-analysis/{job_id}/report/{format}"
 
+    # Determine final job status
+    job_status = service.load_job_status(job_id)
+    final_status = job_status.get("status", "unknown") if job_status else manifest.get("status", "unknown")
+
+
     return {
         "job_id": job_id,
-        "status": manifest.get("status", "unknown"),
+        "status": final_status,
         "dataset_hash": manifest.get("dataset_hash"),
         "target_detection": target_info,
         "reports": report_urls,
-        "mlflow_run_id": manifest.get("mlflow_run_id") # Assuming this will be added to manifest
+        "mlflow_run_id": manifest.get("mlflow_run_id")
     }
