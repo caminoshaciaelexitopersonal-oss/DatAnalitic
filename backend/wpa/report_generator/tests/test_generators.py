@@ -6,7 +6,6 @@ from PIL import Image
 from backend.wpa.report_generator.docx_generator import create_docx_report
 from backend.wpa.report_generator.excel_generator import create_excel_report
 from backend.wpa.report_generator.pdf_generator import create_pdf_report
-from backend.wpa.report_generator.template_manager import get_template_path
 
 @pytest.fixture
 def mock_artifacts():

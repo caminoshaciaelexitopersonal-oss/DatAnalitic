@@ -1,23 +1,33 @@
 # Usa una imagen oficial de Python como imagen base
-FROM python:3.12-slim
+FROM python:3.11-slim
+
+# Instala dependencias del SO necesarias
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    git \
+    libmagic1 \
+    libgomp1 \
+    build-essential \
+    gcc \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
 
 # Establece el directorio de trabajo en /app
 WORKDIR /app
 
-# Añade el directorio /app a PYTHONPATH para que los imports absolutos (desde 'backend') funcionen
-ENV PYTHONPATH=/app
-
-# Instala libmagic, la dependencia del sistema para python-magic
-RUN apt-get update && apt-get install -y libmagic1
-
-# Copia el archivo de requerimientos bloqueado al directorio de trabajo
+# Copia el archivo de requerimientos primero para aprovechar el cache de Docker
 COPY backend/requirements.txt .
 
-# Instala los requerimientos desde el archivo bloqueado
-RUN pip install --no-cache-dir -r requirements.txt
+# Actualiza pip y asegura setuptools/wheel antes de instalar requirements
+RUN python -m pip install --upgrade pip setuptools wheel
 
-# Copia el código de la aplicación del backend
-COPY backend/ .
+# Instala las dependencias de Python desde el archivo de requerimientos
+RUN pip uninstall -y bcrypt passlib && pip install --no-cache-dir -r requirements.txt
+
+# Copia el código de la aplicación del backend, preservando la estructura del paquete
+COPY backend /app/backend
+
+# Añade el directorio /app a PYTHONPATH para que las importaciones absolutas funcionen
+ENV PYTHONPATH=/app
 
 # Expone el puerto 8000 para que FastAPI sea accesible
 EXPOSE 8000

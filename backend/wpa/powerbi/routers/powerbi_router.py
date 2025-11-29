@@ -6,7 +6,7 @@ from backend.wpa.powerbi.services.data_service import DataService
 from backend.wpa.powerbi.services.viz_service import VisualizationService
 from backend.wpa.powerbi.services.model_service import ModelService
 from backend.wpa.powerbi.services.cache_service import CacheService
-from backend.wpa.powerbi.schemas.powerbi_dashboard import DashboardConfig, WidgetConfig
+from backend.wpa.powerbi.schemas.dashboard_config import DashboardConfig, WidgetConfig
 from backend.wpa.powerbi.schemas.powerbi_request import DataQueryRequest
 
 router = APIRouter(prefix="/powerbi", tags=["PowerBI-Style"])

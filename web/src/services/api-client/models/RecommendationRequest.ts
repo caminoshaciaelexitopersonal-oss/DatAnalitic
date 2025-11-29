@@ -2,6 +2,7 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-export type SubmitRequest = {
-    session_id: string;
+export type RecommendationRequest = {
+    dataset_name: string;
+    sample_limit?: (number | null);
 };

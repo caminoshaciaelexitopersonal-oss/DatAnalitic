@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
-import { apiClient } from '@/services/api-client';
+import { PowerBiStyleService } from '@/services/api-client';
+import { DashboardConfig } from '@/services/api-client';
 
 export const useDashboard = (dashboardId: string) => {
-  const [dashboard, setDashboard] = useState<any>(null);
+  const [dashboard, setDashboard] = useState<DashboardConfig | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -12,10 +13,11 @@ export const useDashboard = (dashboardId: string) => {
     const fetchDashboard = async () => {
       try {
         setLoading(true);
-        const response = await apiClient.get(`/powerbi/dashboard/${dashboardId}`);
-        setDashboard(response.data);
+        const dashboardData = await PowerBiStyleService.getDashboardUnifiedV1WpaPowerbiPowerbiDashboardDashboardIdGet(dashboardId);
+        setDashboard(dashboardData);
       } catch (err) {
         setError('Failed to fetch dashboard');
+        console.error(err);
       } finally {
         setLoading(false);
       }

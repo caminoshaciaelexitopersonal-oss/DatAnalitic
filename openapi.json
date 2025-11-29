@@ -1,10 +1,8 @@
 {
   "openapi": "3.1.0",
   "info": {
- 
     "title": "SADI API",
     "version": "1.0"
- 
   },
   "paths": {
     "/metrics": {
@@ -24,85 +22,19 @@
         }
       }
     },
-    "/unified/v1/mcp/session/create": {
-      "post": {
-        "tags": [
-          "MCP - Main Control Plane"
-        ],
-        "summary": "Create Session",
-        "description": "Creates a new analysis session.",
-        "operationId": "create_session_unified_v1_mcp_session_create_post",
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Session"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/unified/v1/mcp/session/{session_id}": {
-      "get": {
-        "tags": [
-          "MCP - Main Control Plane"
-        ],
-        "summary": "Get Session",
-        "description": "Retrieves a session by its ID.",
-        "operationId": "get_session_unified_v1_mcp_session__session_id__get",
-        "parameters": [
-          {
-            "name": "session_id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid",
-              "title": "Session Id"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Session"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/unified/v1/mcp/job/start": {
       "post": {
         "tags": [
           "MCP - Main Control Plane"
         ],
-        "summary": "Create Job",
-        "description": "Creates a new job within a session.",
-        "operationId": "create_job_unified_v1_mcp_job_start_post",
+        "summary": "Create Job Unified",
+        "description": "Unified endpoint to start a new analysis job.\n1. Creates a Session and a Job.\n2. Uploads the data file to object storage (MinIO).\n3. Triggers the master asynchronous pipeline.",
+        "operationId": "createJobUnified",
         "requestBody": {
           "content": {
-            "application/json": {
+            "multipart/form-data": {
               "schema": {
-                "$ref": "#/components/schemas/Body_create_job_unified_v1_mcp_job_start_post"
+                "$ref": "#/components/schemas/Body_createJobUnified"
               }
             }
           },
@@ -132,32 +64,72 @@
         }
       }
     },
-    "/unified/v1/mcp/step": {
-      "post": {
+    "/unified/v1/mcp/job/{job_id}/status": {
+      "get": {
         "tags": [
           "MCP - Main Control Plane"
         ],
-        "summary": "Create Step",
-        "description": "Creates a new step within a job.",
-        "operationId": "create_step_unified_v1_mcp_step_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/Body_create_step_unified_v1_mcp_step_post"
-              }
+        "summary": "Get Job Status Unified",
+        "description": "Retrieves the current status of a job.",
+        "operationId": "getJobStatusUnified",
+        "parameters": [
+          {
+            "name": "job_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Job Id"
             }
-          },
-          "required": true
-        },
+          }
+        ],
         "responses": {
           "200": {
             "description": "Successful Response",
             "content": {
               "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Step"
+                  "$ref": "#/components/schemas/HTTPValidationError"
                 }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/unified/v1/mcp/job/{job_id}/results": {
+      "get": {
+        "tags": [
+          "MCP - Main Control Plane"
+        ],
+        "summary": "Get Job Results",
+        "description": "Retrieves a consolidated summary of the job results from the StateStore for the frontend.",
+        "operationId": "getJobResults",
+        "parameters": [
+          {
+            "name": "job_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Job Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
               }
             }
           },
@@ -181,12 +153,12 @@
         ],
         "summary": "Upload File",
         "description": "Handles file uploads and processes them using the IngestionService.\nThis is the new MPA-based endpoint for file ingestion.\n**Requires DATA_SCIENTIST role.**",
-        "operationId": "upload_file_unified_v1_mpa_ingestion_upload_file__post",
+        "operationId": "uploadFile",
         "requestBody": {
           "content": {
             "multipart/form-data": {
               "schema": {
-                "$ref": "#/components/schemas/Body_upload_file_unified_v1_mpa_ingestion_upload_file__post"
+                "$ref": "#/components/schemas/Body_uploadFile"
               }
             }
           },
@@ -226,7 +198,7 @@
         ],
         "summary": "Get Quality Report",
         "description": "Generates a comprehensive data quality report for the dataset associated\nwith the given session_id.",
-        "operationId": "get_quality_report_unified_v1_mpa_quality_report_post",
+        "operationId": "getQualityReport",
         "requestBody": {
           "content": {
             "application/json": {
@@ -244,7 +216,7 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "title": "Response Get Quality Report Unified V1 Mpa Quality Report Post"
+                  "title": "Response Getqualityreport"
                 }
               }
             }
@@ -454,53 +426,24 @@
         }
       }
     },
- 
-    "/unified/v1/wpa/auto-analysis/submit": {
-      "post": {
+    "/unified/v1/wpa/auto-analysis/jobs/status": {
+      "get": {
         "tags": [
           "WPA - Automated Analysis"
         ],
-        "summary": "Submit Auto Analysis Job",
-        "operationId": "submit_auto_analysis_job_unified_v1_wpa_auto_analysis_submit_post",
- 
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
- 
-                "$ref": "#/components/schemas/SubmitRequest"
- 
-              }
-            }
-          },
-          "required": true
-        },
+        "summary": "Get All Job Statuses",
+        "description": "Returns the status of all jobs.",
+        "operationId": "getAllJobStatuses",
         "responses": {
- 
-          "202": {
+          "200": {
             "description": "Successful Response",
             "content": {
               "application/json": {
                 "schema": {}
               }
             }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
           }
-        },
-        "security": [
-          {
-            "OAuth2PasswordBearer": []
-          }
-        ]
+        }
       }
     },
     "/unified/v1/wpa/auto-analysis/{job_id}/status": {
@@ -509,7 +452,7 @@
           "WPA - Automated Analysis"
         ],
         "summary": "Get Job Status",
-        "operationId": "get_job_status_unified_v1_wpa_auto_analysis__job_id__status_get",
+        "operationId": "getJobStatus",
         "parameters": [
           {
             "name": "job_id",
@@ -522,12 +465,10 @@
           }
         ],
         "responses": {
- 
           "200": {
             "description": "Successful Response",
             "content": {
               "application/json": {
- 
                 "schema": {}
               }
             }
@@ -552,7 +493,7 @@
         ],
         "summary": "Get Generated Code",
         "description": "Returns the code generated during the analysis in the specified format.",
-        "operationId": "get_generated_code_unified_v1_wpa_auto_analysis__job_id__code_get",
+        "operationId": "getGeneratedCode",
         "parameters": [
           {
             "name": "job_id",
@@ -582,7 +523,6 @@
                 "schema": {}
               }
             }
- 
           },
           "422": {
             "description": "Validation Error",
@@ -597,15 +537,64 @@
         }
       }
     },
- 
-    "/unified/v1/wpa/auto-analysis/{job_id}/report/docx": {
+    "/unified/v1/wpa/auto-analysis/{job_id}/report/{format}": {
       "get": {
         "tags": [
           "WPA - Automated Analysis"
         ],
-        "summary": "Download Docx Report",
-        "description": "Generates and serves a DOCX report for the completed analysis job.",
-        "operationId": "download_docx_report_unified_v1_wpa_auto_analysis__job_id__report_docx_get",
+        "summary": "Download Report",
+        "description": "Downloads the specified report (docx, xlsx, or pdf) for a completed job.\nIt reads the manifest to find the correct report path.",
+        "operationId": "downloadReport",
+        "parameters": [
+          {
+            "name": "job_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Job Id"
+            }
+          },
+          {
+            "name": "format",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Format"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/unified/v1/wpa/auto-analysis/{job_id}/target": {
+      "get": {
+        "tags": [
+          "WPA - Automated Analysis"
+        ],
+        "summary": "Get Target Detection Result",
+        "description": "Returns the target.json file for the specified job.",
+        "operationId": "getTargetDetectionResult",
         "parameters": [
           {
             "name": "job_id",
@@ -639,57 +628,54 @@
         }
       }
     },
-    "/unified/v1/wpa/auto-analysis/{job_id}/report/excel": {
+    "/unified/v1/wpa/auto-ml/status": {
       "get": {
         "tags": [
-          "WPA - Automated Analysis"
+          "WPA - AutoML"
         ],
-        "summary": "Download Excel Report",
-        "description": "Generates and serves an Excel report for the completed analysis job.",
-        "operationId": "download_excel_report_unified_v1_wpa_auto_analysis__job_id__report_excel_get",
-        "parameters": [
-          {
-            "name": "job_id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Job Id"
-            }
-          }
-        ],
+        "summary": "Get Automl Status",
+        "description": "Returns the status of the AutoML module, including the number of registered models.",
+        "operationId": "getAutoMLStatus",
         "responses": {
           "200": {
- 
             "description": "Successful Response",
             "content": {
               "application/json": {
                 "schema": {}
               }
             }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
           }
- 
         }
       }
     },
-    "/unified/v1/wpa/auto-analysis/{job_id}/report/pdf": {
+    "/unified/v1/wpa/auto-ml/models": {
       "get": {
         "tags": [
-          "WPA - Automated Analysis"
+          "WPA - AutoML"
         ],
-        "summary": "Download Pdf Report",
-        "description": "Generates and serves a PDF report for the completed analysis job.",
-        "operationId": "download_pdf_report_unified_v1_wpa_auto_analysis__job_id__report_pdf_get",
+        "summary": "Get Automl Models",
+        "description": "Returns a list of all registered models.",
+        "operationId": "getAutoMLModels",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/unified/v1/wpa/auto-ml/download/{job_id}/{model_name}": {
+      "get": {
+        "tags": [
+          "WPA - AutoML"
+        ],
+        "summary": "Download Automl Model",
+        "description": "Downloads a trained model.",
+        "operationId": "downloadAutoMLModel",
         "parameters": [
           {
             "name": "job_id",
@@ -698,6 +684,15 @@
             "schema": {
               "type": "string",
               "title": "Job Id"
+            }
+          },
+          {
+            "name": "model_name",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Model Name"
             }
           }
         ],
@@ -729,7 +724,171 @@
           "WPA - AutoML"
         ],
         "summary": "Submit Automl Job",
-        "operationId": "submit_automl_job_unified_v1_wpa_auto_ml_submit_post",
+        "description": "Submits a new AutoML job.\nThis enqueues a Celery task to run the full AutoML pipeline.",
+        "operationId": "submitAutoMLJob",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AutoMLRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AutoMLSubmitResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/unified/v1/wpa/auto-ml/hpo/submit": {
+      "post": {
+        "tags": [
+          "WPA - AutoML"
+        ],
+        "summary": "Submit Hpo Job",
+        "description": "Submits a new HPO job.",
+        "operationId": "submitHPOJob",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HPORequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HPOSubmitResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/unified/v1/wpa/powerbi/powerbi/dashboards": {
+      "get": {
+        "tags": [
+          "PowerBI-Style"
+        ],
+        "summary": "List Dashboards",
+        "description": "List all available dashboard IDs.",
+        "operationId": "list_dashboards_unified_v1_wpa_powerbi_powerbi_dashboards_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array",
+                  "title": "Response List Dashboards Unified V1 Wpa Powerbi Powerbi Dashboards Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/unified/v1/wpa/powerbi/powerbi/dashboard/{dashboard_id}": {
+      "get": {
+        "tags": [
+          "PowerBI-Style"
+        ],
+        "summary": "Get Dashboard",
+        "description": "Returns full dashboard: layout, widgets, filters, metadata.",
+        "operationId": "get_dashboard_unified_v1_wpa_powerbi_powerbi_dashboard__dashboard_id__get",
+        "parameters": [
+          {
+            "name": "dashboard_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Dashboard Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DashboardConfig"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/unified/v1/wpa/powerbi/powerbi/data/query": {
+      "post": {
+        "tags": [
+          "PowerBI-Style"
+        ],
+        "summary": "Query Data",
+        "description": "Executes a dataset query (SQL-like, pandas-like, or connector).\nAutomatically handles:\n  - DBs\n  - CSV/Excel/Parquet\n  - Google Drive / OneDrive\n  - DataLake\n  - AutoML enriched data",
+        "operationId": "query_data_unified_v1_wpa_powerbi_powerbi_data_query_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DataQueryRequest"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -738,26 +897,64 @@
                 "schema": {}
               }
             }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
           }
         }
       }
     },
-    "/unified/v1/wpa/auto-ml/{job_id}/status": {
+    "/unified/v1/wpa/powerbi/powerbi/data/widget/{dashboard_id}/{widget_id}": {
       "get": {
         "tags": [
-          "WPA - AutoML"
+          "PowerBI-Style"
         ],
-        "summary": "Get Job Status",
-        "operationId": "get_job_status_unified_v1_wpa_auto_ml__job_id__status_get",
+        "summary": "Get Widget Data",
+        "description": "Returns processed widget data (aggregations, group-bys, filters applied).",
+        "operationId": "get_widget_data_unified_v1_wpa_powerbi_powerbi_data_widget__dashboard_id___widget_id__get",
         "parameters": [
           {
-            "name": "job_id",
+            "name": "dashboard_id",
             "in": "path",
             "required": true,
             "schema": {
               "type": "string",
-              "title": "Job Id"
+              "title": "Dashboard Id"
             }
+          },
+          {
+            "name": "widget_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Widget Id"
+            }
+          },
+          {
+            "name": "filter_values",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "JSON string of filters",
+              "title": "Filter Values"
+            },
+            "description": "JSON string of filters"
           }
         ],
         "responses": {
@@ -782,25 +979,24 @@
         }
       }
     },
-    "/unified/v1/wpa/auto-ml/{job_id}/models": {
-      "get": {
+    "/unified/v1/wpa/powerbi/powerbi/model/recommend": {
+      "post": {
         "tags": [
-          "WPA - AutoML"
+          "PowerBI-Style"
         ],
-        "summary": "Get Job Models",
-        "operationId": "get_job_models_unified_v1_wpa_auto_ml__job_id__models_get",
- 
-        "parameters": [
-          {
-            "name": "job_id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Job Id"
+        "summary": "Recommend Dashboard",
+        "description": "AutoML suggestions:\n  - Best KPIs\n  - Best chart types\n  - Best variables to analyze\n  - Insights (correlations, trends)\n  - Feature importance\n  - Clusters / segments",
+        "operationId": "recommend_dashboard_unified_v1_wpa_powerbi_powerbi_model_recommend_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RecommendationRequest"
+              }
             }
-          }
-        ],
+          },
+          "required": true
+        },
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -823,37 +1019,67 @@
         }
       }
     },
- 
-    "/unified/v1/wpa/auto-ml/{job_id}/download/{model_name}": {
+    "/unified/v1/wpa/powerbi/powerbi/cache/clear": {
+      "delete": {
+        "tags": [
+          "PowerBI-Style"
+        ],
+        "summary": "Clear Cache",
+        "description": "Deletes all internal cache for dashboards, widgets and datasets.",
+        "operationId": "clear_cache_unified_v1_wpa_powerbi_powerbi_cache_clear_delete",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/unified/v1/wpa/powerbi/powerbi/status": {
       "get": {
         "tags": [
-          "WPA - AutoML"
+          "PowerBI-Style"
         ],
-        "summary": "Download Model",
-        "operationId": "download_model_unified_v1_wpa_auto_ml__job_id__download__model_name__get",
- 
-        "parameters": [
-          {
-            "name": "job_id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Job Id"
+        "summary": "Powerbi Status",
+        "operationId": "powerbi_status_unified_v1_wpa_powerbi_powerbi_status_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
             }
- 
-          },
-          {
-            "name": "model_name",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Model Name"
-            }
- 
           }
+        }
+      }
+    },
+    "/unified/v1/wpa/router/predict": {
+      "post": {
+        "tags": [
+          "WPA - Intelligent Router"
         ],
+        "summary": "Intelligent Predict",
+        "description": "Dynamically selects the best model from the scoreboard, loads it,\nand performs a prediction.",
+        "operationId": "intelligent_predict_unified_v1_wpa_router_predict_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "items": {
+                  "type": "object"
+                },
+                "type": "array",
+                "title": "Input Data"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -876,7 +1102,6 @@
         }
       }
     },
- 
     "/unified/v1/chat": {
       "post": {
         "summary": "Chat Agent",
@@ -917,7 +1142,6 @@
         }
       }
     },
- 
     "/auth/token": {
       "post": {
         "tags": [
@@ -925,12 +1149,12 @@
         ],
         "summary": "Login For Access Token",
         "description": "Provides a JWT token for valid user credentials.",
-        "operationId": "login_for_access_token_auth_token_post",
+        "operationId": "loginForAccessToken",
         "requestBody": {
           "content": {
             "application/x-www-form-urlencoded": {
               "schema": {
-                "$ref": "#/components/schemas/Body_login_for_access_token_auth_token_post"
+                "$ref": "#/components/schemas/Body_loginForAccessToken"
               }
             }
           },
@@ -990,6 +1214,73 @@
         ],
         "title": "AnonymizeRequest"
       },
+      "AutoMLRequest": {
+        "properties": {
+          "job_id": {
+            "type": "string",
+            "title": "Job Id",
+            "description": "The job_id of the main analysis pipeline to link with."
+          },
+          "target": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Target",
+            "description": "The target variable for supervised learning. If None, it's inferred from the target detection step."
+          },
+          "models_to_run": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Models To Run",
+            "description": "Optional list of model keys to run. If None, a default selection is used."
+          },
+          "perform_hpo": {
+            "type": "boolean",
+            "title": "Perform Hpo",
+            "description": "Whether to perform Hyperparameter Optimization.",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": [
+          "job_id"
+        ],
+        "title": "AutoMLRequest",
+        "description": "Payload for the POST /submit endpoint."
+      },
+      "AutoMLSubmitResponse": {
+        "properties": {
+          "automl_job_id": {
+            "type": "string",
+            "title": "Automl Job Id"
+          },
+          "celery_task_id": {
+            "type": "string",
+            "title": "Celery Task Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "automl_job_id",
+          "celery_task_id"
+        ],
+        "title": "AutoMLSubmitResponse",
+        "description": "Response from the POST /submit endpoint."
+      },
       "BiasAuditRequest": {
         "properties": {
           "run_id": {
@@ -1013,56 +1304,21 @@
         ],
         "title": "BiasAuditRequest"
       },
-      "Body_create_job_unified_v1_mcp_job_start_post": {
+      "Body_createJobUnified": {
         "properties": {
-          "session_id": {
+          "file": {
             "type": "string",
-            "format": "uuid",
-            "title": "Session Id"
-          },
-          "job_type": {
-            "type": "string",
-            "title": "Job Type"
+            "format": "binary",
+            "title": "File"
           }
         },
         "type": "object",
         "required": [
-          "session_id",
-          "job_type"
+          "file"
         ],
-        "title": "Body_create_job_unified_v1_mcp_job_start_post"
+        "title": "Body_createJobUnified"
       },
-      "Body_create_step_unified_v1_mcp_step_post": {
-        "properties": {
-          "job_id": {
-            "type": "string",
-            "format": "uuid",
-            "title": "Job Id"
-          },
-          "description": {
-            "type": "string",
-            "title": "Description"
-          },
-          "payload": {
-            "anyOf": [
-              {
-                "type": "object"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Payload"
-          }
-        },
-        "type": "object",
-        "required": [
-          "job_id",
-          "description"
-        ],
-        "title": "Body_create_step_unified_v1_mcp_step_post"
-      },
-      "Body_login_for_access_token_auth_token_post": {
+      "Body_loginForAccessToken": {
         "properties": {
           "grant_type": {
             "anyOf": [
@@ -1117,9 +1373,9 @@
           "username",
           "password"
         ],
-        "title": "Body_login_for_access_token_auth_token_post"
+        "title": "Body_loginForAccessToken"
       },
-      "Body_upload_file_unified_v1_mpa_ingestion_upload_file__post": {
+      "Body_uploadFile": {
         "properties": {
           "session_id": {
             "type": "string",
@@ -1136,7 +1392,7 @@
           "session_id",
           "file"
         ],
-        "title": "Body_upload_file_unified_v1_mpa_ingestion_upload_file__post"
+        "title": "Body_uploadFile"
       },
       "ChatRequest": {
         "properties": {
@@ -1156,6 +1412,84 @@
         ],
         "title": "ChatRequest"
       },
+      "DashboardConfig": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id",
+            "description": "Dashboard ID"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title",
+            "description": "Human title"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "category": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Category",
+            "default": "general"
+          },
+          "global_filters": {
+            "anyOf": [
+              {
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Global Filters"
+          },
+          "layout": {
+            "type": "object",
+            "title": "Layout",
+            "description": "Layout: {widgets: [...], grid: {...}}"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "title",
+          "layout"
+        ],
+        "title": "DashboardConfig"
+      },
+      "DataQueryRequest": {
+        "properties": {
+          "query": {
+            "type": "string",
+            "title": "Query"
+          },
+          "source": {
+            "type": "string",
+            "title": "Source",
+            "default": "local"
+          }
+        },
+        "type": "object",
+        "required": [
+          "query"
+        ],
+        "title": "DataQueryRequest"
+      },
       "GeminiProxyRequest": {
         "properties": {
           "prompt": {
@@ -1168,6 +1502,58 @@
           "prompt"
         ],
         "title": "GeminiProxyRequest"
+      },
+      "HPORequest": {
+        "properties": {
+          "job_id": {
+            "type": "string",
+            "title": "Job Id",
+            "description": "The job_id of the main analysis pipeline to link with."
+          },
+          "model_name": {
+            "type": "string",
+            "title": "Model Name",
+            "description": "The name of the model to optimize."
+          },
+          "n_trials": {
+            "type": "integer",
+            "title": "N Trials",
+            "description": "The number of HPO trials to run.",
+            "default": 50
+          },
+          "scoring": {
+            "type": "string",
+            "title": "Scoring",
+            "description": "The scoring metric to optimize for.",
+            "default": "accuracy"
+          }
+        },
+        "type": "object",
+        "required": [
+          "job_id",
+          "model_name"
+        ],
+        "title": "HPORequest",
+        "description": "Payload for the POST /hpo/submit endpoint."
+      },
+      "HPOSubmitResponse": {
+        "properties": {
+          "hpo_job_id": {
+            "type": "string",
+            "title": "Hpo Job Id"
+          },
+          "celery_task_id": {
+            "type": "string",
+            "title": "Celery Task Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "hpo_job_id",
+          "celery_task_id"
+        ],
+        "title": "HPOSubmitResponse",
+        "description": "Response from the POST /hpo/submit endpoint."
       },
       "HTTPValidationError": {
         "properties": {
@@ -1237,34 +1623,30 @@
         ],
         "title": "ModelCardRequest"
       },
-      "Session": {
+      "RecommendationRequest": {
         "properties": {
-          "session_id": {
+          "dataset_name": {
             "type": "string",
-            "format": "uuid",
-            "title": "Session Id"
+            "title": "Dataset Name"
           },
-          "created_at": {
-            "type": "string",
-            "format": "date-time",
-            "title": "Created At"
-          },
-          "status": {
-            "type": "string",
-            "title": "Status",
-            "default": "active"
-          },
-          "jobs": {
-            "additionalProperties": {
-              "$ref": "#/components/schemas/Job"
-            },
-            "type": "object",
-            "title": "Jobs",
-            "default": {}
+          "sample_limit": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sample Limit",
+            "default": 5000
           }
         },
         "type": "object",
-        "title": "Session"
+        "required": [
+          "dataset_name"
+        ],
+        "title": "RecommendationRequest"
       },
       "SessionRequest": {
         "properties": {
@@ -1324,19 +1706,6 @@
           "description"
         ],
         "title": "Step"
-      },
-      "SubmitRequest": {
-        "properties": {
-          "session_id": {
-            "type": "string",
-            "title": "Session Id"
-          }
-        },
-        "type": "object",
-        "required": [
-          "session_id"
-        ],
-        "title": "SubmitRequest"
       },
       "Token": {
         "properties": {

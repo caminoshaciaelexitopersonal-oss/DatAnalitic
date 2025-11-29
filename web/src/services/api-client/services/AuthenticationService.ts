@@ -2,7 +2,7 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-import type { Body_login_for_access_token_auth_token_post } from '../models/Body_login_for_access_token_auth_token_post';
+import type { Body_loginForAccessToken } from '../models/Body_loginForAccessToken';
 import type { Token } from '../models/Token';
 import type { CancelablePromise } from '../core/CancelablePromise';
 import { OpenAPI } from '../core/OpenAPI';
@@ -15,8 +15,8 @@ export class AuthenticationService {
      * @returns Token Successful Response
      * @throws ApiError
      */
-    public static loginForAccessTokenAuthTokenPost(
-        formData: Body_login_for_access_token_auth_token_post,
+    public static loginForAccessToken(
+        formData: Body_loginForAccessToken,
     ): CancelablePromise<Token> {
         return __request(OpenAPI, {
             method: 'POST',

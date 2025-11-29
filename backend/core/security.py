@@ -7,7 +7,7 @@ from functools import lru_cache
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
-from passlib.context import CryptContext
+import bcrypt
 from sqlalchemy.orm import Session
 
 from backend.schemas import User, TokenData, Role
@@ -21,8 +21,16 @@ ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
 # --- Password Hashing ---
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/token")
+
+def hash_password(password: str) -> str:
+    """Hashes a password using bcrypt."""
+    return bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+
+def verify_password(plain_password: str, hashed_password: str) -> bool:
+    """Verifies a password against a hash."""
+    return bcrypt.checkpw(plain_password.encode('utf-8'), hashed_password.encode('utf-8'))
+
 
 # --- Database Initialization Logic ---
 def initialize_default_admin(db: Session):
@@ -30,25 +38,28 @@ def initialize_default_admin(db: Session):
     Checks for and creates a default admin user if one doesn't exist.
     This function should be called during application startup.
     """
-    admin_user = db.query(UserModel).filter(UserModel.username == "admin").first()
-    if not admin_user:
-        default_password = os.getenv("DEFAULT_ADMIN_PASSWORD")
-        if not default_password:
-            print("WARNING: DEFAULT_ADMIN_PASSWORD not set. Skipping default admin creation.")
-            return
+    try:
+        admin_user = db.query(UserModel).filter(UserModel.username == "admin").first()
+        if not admin_user:
+            default_password = os.getenv("DEFAULT_ADMIN_PASSWORD")
+            if not default_password:
+                print("WARNING: DEFAULT_ADMIN_PASSWORD not set. Skipping default admin creation.")
+                return
 
-        hashed_password = pwd_context.hash(default_password)
-        new_admin = UserModel(
-            username="admin",
-            full_name="Admin User",
-            email="admin@example.com",
-            hashed_password=hashed_password,
-            role="admin",
-            disabled=False
-        )
-        db.add(new_admin)
-        db.commit()
-        print("Default admin user created.")
+            hashed_password = hash_password(default_password)
+            new_admin = UserModel(
+                username="admin",
+                full_name="Admin User",
+                email="admin@example.com",
+                hashed_password=hashed_password,
+                role="admin",
+                disabled=False
+            )
+            db.add(new_admin)
+            db.commit()
+            print("Default admin user created.")
+    except Exception as e:
+        print(f"DEBUG: Could not connect to DB during admin initialization: {e}")
 
 
 # --- Utility Functions ---

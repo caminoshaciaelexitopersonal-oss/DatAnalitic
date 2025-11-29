@@ -30,7 +30,7 @@ const DashboardPage = () => {
     <div className="container mx-auto p-4">
       <h1 className="text-2xl font-bold mb-4">{dashboard?.title}</h1>
       <FilterPanel filters={dashboard?.global_filters} onFilterChange={handleFilterChange} />
-      <DashboardGrid dashboard={dashboard} />
+      <DashboardGrid dashboard={dashboard} filters={filters} />
     </div>
   );
 };

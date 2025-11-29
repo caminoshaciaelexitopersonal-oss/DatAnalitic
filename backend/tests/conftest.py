@@ -1,19 +1,42 @@
 import pytest
 import os
-os.environ['TESTING'] = 'True'
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
 from fastapi.testclient import TestClient
+
+# Set an environment variable to indicate we are running tests
+os.environ['TESTING'] = 'True'
+
+# Import the SQLAlchemy Base from where the models are defined
+from backend.core.state_store import Base
 from backend.main import app
 
-class DummyAgent:
-    async def ainvoke(self, data, config=None):
-        return {"output": f"Mocked agent response for session {config.get('configurable', {}).get('session_id', 'N/A')}."}
+@pytest.fixture(scope="function")
+def test_db():
+    """
+    Pytest fixture to provide a transactional in-memory SQLite database session.
+    """
+    # Use in-memory SQLite for tests
+    engine = create_engine("sqlite:///:memory:")
+
+    # Create tables
+    Base.metadata.create_all(bind=engine)
+
+    # Create a new session
+    TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+    db_session = TestingSessionLocal()
+
+    try:
+        yield db_session
+    finally:
+        db_session.close()
+        # Drop all tables after the test finishes
+        Base.metadata.drop_all(bind=engine)
 
 @pytest.fixture(scope="module")
 def test_app():
     """
     Provides the FastAPI app instance for testing.
-    The agent is now self-contained within the agent router and does not
-    need to be mocked globally here. Specific tests can mock if needed.
     """
     return app
 

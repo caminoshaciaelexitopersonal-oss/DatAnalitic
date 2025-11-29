@@ -2,28 +2,26 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-import type { Body_uploadFile } from '../models/Body_uploadFile';
 import type { CancelablePromise } from '../core/CancelablePromise';
 import { OpenAPI } from '../core/OpenAPI';
 import { request as __request } from '../core/request';
-export class MpaIngestionService {
+export class WpaIntelligentRouterService {
     /**
-     * Upload File
-     * Handles file uploads and processes them using the IngestionService.
-     * This is the new MPA-based endpoint for file ingestion.
-     * **Requires DATA_SCIENTIST role.**
-     * @param formData
+     * Intelligent Predict
+     * Dynamically selects the best model from the scoreboard, loads it,
+     * and performs a prediction.
+     * @param requestBody
      * @returns any Successful Response
      * @throws ApiError
      */
-    public static uploadFile(
-        formData: Body_uploadFile,
+    public static intelligentPredictUnifiedV1WpaRouterPredictPost(
+        requestBody: Array<Record<string, any>>,
     ): CancelablePromise<any> {
         return __request(OpenAPI, {
             method: 'POST',
-            url: '/unified/v1/mpa/ingestion/upload-file/',
-            formData: formData,
-            mediaType: 'multipart/form-data',
+            url: '/unified/v1/wpa/router/predict',
+            body: requestBody,
+            mediaType: 'application/json',
             errors: {
                 422: `Validation Error`,
             },
