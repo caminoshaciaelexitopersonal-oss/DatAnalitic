@@ -126,6 +126,7 @@ services:
       context: .
       dockerfile: backend/Dockerfile
     working_dir: /app
+ 
     volumes:
       - .:/app
     environment:
@@ -134,6 +135,7 @@ services:
       # Override SECRET_KEY for a predictable test environment
       SECRET_KEY: test_secret_key
     command: ["python", "-m", "pytest", "backend"]
+ 
     depends_on:
       - redis
       - mlflow
