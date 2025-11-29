@@ -74,7 +74,9 @@ def test_get_current_user_valid_token(client: TestClient, test_user_in_db, temp_
     assert response.json()["username"] == test_user_in_db.username
 
 # --- Integration Tests for Auth Router ---
+ 
 @pytest.mark.skip(reason="Login tests failing due to complex DB session scope issues in TestClient. Verification will be done via E2E test.")
+ 
 def test_login_for_access_token(client: TestClient, test_db: Session):
     # ARRANGE: Create the admin user directly in the test's DB session
     admin_user = UserModel(
@@ -100,7 +102,9 @@ def test_login_for_access_token(client: TestClient, test_db: Session):
     assert "access_token" in json_data
     assert json_data["token_type"] == "bearer"
 
+ 
 @pytest.mark.skip(reason="Login tests failing due to complex DB session scope issues in TestClient. Verification will be done via E2E test.")
+ 
 def test_login_for_access_token_failure(client: TestClient, test_db: Session):
     # ARRANGE: Create the admin user directly
     admin_user = UserModel(
