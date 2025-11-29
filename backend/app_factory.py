@@ -62,20 +62,20 @@ def create_app():
     app.include_router(unified_router)
     app.include_router(auth_router)
 
-    # @app.on_event("startup")
-    # async def startup_event():
-    #     # Initialize database and default admin user
-    #     from backend.core.state_store import get_state_store
-    #     from backend.core.security import initialize_default_admin
+    @app.on_event("startup")
+    async def startup_event():
+        # Initialize database and default admin user
+        from backend.core.state_store import get_state_store
+        from backend.core.security import initialize_default_admin
 
-    #     state_store = get_state_store()
-    #     with state_store.session_scope() as db:
-    #         initialize_default_admin(db)
+        state_store = get_state_store()
+        with state_store.session_scope() as db:
+            initialize_default_admin(db)
 
-    #     print("--- Registered Routes ---")
-    #     for route in app.routes:
-    #         if hasattr(route, "methods"):
-    #             print(f"Path: {route.path}, Methods: {list(route.methods)}")
-    #     print("-------------------------")
+        print("--- Registered Routes ---")
+        for route in app.routes:
+            if hasattr(route, "methods"):
+                print(f"Path: {route.path}, Methods: {list(route.methods)}")
+        print("-------------------------")
 
     return app
