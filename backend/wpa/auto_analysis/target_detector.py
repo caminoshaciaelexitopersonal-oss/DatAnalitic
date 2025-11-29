@@ -325,30 +325,14 @@ def weighted_score(components: Dict[str, float], config: Dict = DEFAULT_CONFIG) 
     final = score - penalty
     return float(max(0.0, min(1.0, final)))
 
-def detect_target(input_csv_path: str, job_id: str, out_base: str, config: Dict = DEFAULT_CONFIG) -> Dict[str, Any]:
+def detect_target(df: pd.DataFrame, job_id: str, config: Dict = DEFAULT_CONFIG) -> Dict[str, Any]:
     """
-    Main entry point. Reads CSV, computes scores for each non-ID column,
-    runs quick predictability checks, saves target.json and updates manifest.
+    Main entry point. Reads a DataFrame, computes scores for each non-ID column,
+    runs quick predictability checks, and returns all results as a dictionary.
     """
-    start_ts = time.time()
-    safe_mkdir(out_base)
-    safe_mkdir(os.path.join(out_base, "eda"))
-    safe_mkdir(os.path.join(out_base, "code_steps"))
-    manifest_path = os.path.join(out_base, "manifest.json")
+    # Calculate dataset hash from DataFrame content
+    dataset_hash = hashlib.sha256(pd.util.hash_pandas_object(df, index=True).values).hexdigest()
 
-    # load manifest if exists
-    manifest = {"job_id": job_id, "steps": [], "start_time": start_ts}
-    if os.path.exists(manifest_path):
-        try:
-            with open(manifest_path, "r", encoding="utf8") as fh:
-                manifest = json.load(fh)
-        except Exception:
-            pass
-
-    # read dataset
-    df = pd.read_csv(input_csv_path)
-    dataset_hash = sha256_of_file(input_csv_path)
-    # quick eda basic summary saved
     eda_summary = {
         "n_rows": len(df),
         "n_cols": len(df.columns),
@@ -367,11 +351,9 @@ def detect_target(input_csv_path: str, job_id: str, out_base: str, config: Dict 
         }
         eda_summary["columns"].append(col_summary)
 
-        # skip index-like columns
         if is_id_column(series, config):
             continue
 
-        # compute components
         A = availability_score(series)
         T = type_score(series)
         V = variability_score(series, df)
@@ -379,7 +361,6 @@ def detect_target(input_csv_path: str, job_id: str, out_base: str, config: Dict 
         S = semantic_boost(col, config)
         O = operational_penalty(series, col)
 
-        # Quick predict estimate (may be expensive); handle exceptions and timeout externally
         try:
             P_res = quick_predictability_estimate(df, col, config)
             P = float(P_res.get("value", 0.0))
@@ -396,15 +377,19 @@ def detect_target(input_csv_path: str, job_id: str, out_base: str, config: Dict 
             "predict_estimate": P_res
         })
 
-    # sort candidates
     candidates = sorted(candidates, key=lambda x: x["score"], reverse=True)
     top = candidates[:5]
 
-    # decision logic
-    decision = {"job_id": job_id, "decision_mode": "requires_confirmation", "selected_target": None, "confidence": 0.0,
-                "candidates": top, "explanation": ""}
+    decision = {
+        "job_id": job_id,
+        "decision_mode": "requires_confirmation",
+        "selected_target": None,
+        "confidence": 0.0,
+        "candidates": top,
+        "explanation": ""
+    }
 
-    if len(candidates) == 0:
+    if not candidates:
         decision["explanation"] = "No candidate targets detected (all columns filtered as IDs or dataset empty)."
     else:
         best = candidates[0]
@@ -421,38 +406,24 @@ def detect_target(input_csv_path: str, job_id: str, out_base: str, config: Dict 
             decision["confidence"] = float(best["score"])
             decision["explanation"] = "Top candidates require user confirmation due to low confidence or small gap."
 
-    # save artifacts
-    target_path = os.path.join(out_base, "target.json")
-    save_json_atomic(target_path, decision)
-
-    # update manifest
-    manifest_step = {
-        "step": "target_detection",
-        "time": time.time(),
-        "result": {"candidates_count": len(candidates),
-                   "selected": decision.get("selected_target"),
-                   "decision_mode": decision.get("decision_mode")}
+    return {
+        "target_decision": decision,
+        "eda_summary": eda_summary,
+        "dataset_hash": dataset_hash
     }
-    manifest.setdefault("steps", []).append(manifest_step)
-    manifest["dataset_hash"] = dataset_hash
-    manifest["end_time"] = time.time()
-    save_json_atomic(manifest_path, manifest)
-
-    # save eda summary
-    eda_path = os.path.join(out_base, "eda", "summary.json")
-    save_json_atomic(eda_path, eda_summary)
-
-    return decision
 
 # --------------------------
 # If used as script (for local debug)
 # --------------------------
 if __name__ == "__main__":
+    # This part is for local testing and will not be used in the main pipeline
     import argparse
     parser = argparse.ArgumentParser()
     parser.add_argument("--input", required=True, help="path to unified CSV")
     parser.add_argument("--job_id", required=True, help="job id")
-    parser.add_argument("--out", required=True, help="out base folder (e.g. /data/processed/<job_id>)")
     args = parser.parse_args()
-    res = detect_target(args.input, args.job_id, args.out)
+
+    input_df = pd.read_csv(args.input)
+    res = detect_target(input_df, args.job_id)
+
     print(json.dumps(res, indent=2, ensure_ascii=False))

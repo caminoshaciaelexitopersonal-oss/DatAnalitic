@@ -1,97 +1,93 @@
-import shap
 import pandas as pd
 import shap
-import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
-import os
-import json
 from typing import Dict, Any, Optional
 
 SUPPORTED_TREE_MODELS = (
     "RandomForestClassifier", "RandomForestRegressor",
     "XGBClassifier", "XGBRegressor",
     "LGBMClassifier", "LGBMRegressor",
-    "CatBoostClassifier", "CatBoostRegressor",
-    "DecisionTreeClassifier"
+    "DecisionTreeClassifier", "DecisionTreeRegressor"
 )
 
 def explain_model(
     pipeline,
-    X_train: pd.DataFrame,
-    output_dir: str,
-    run_id: str
+    X_train: pd.DataFrame
 ) -> Optional[Dict[str, Any]]:
     """
-    Generates SHAP explainability artifacts for a trained model pipeline.
+    Generates SHAP explainability artifacts and returns them in-memory.
     """
+    artifacts = {"json_artifacts": {}, "figure_artifacts": {}}
     try:
-        model = pipeline.named_steps['model']
-        preprocessor = pipeline.named_steps['preprocessor']
+        model = pipeline.named_steps.get('classifier')
+        preprocessor = pipeline.named_steps.get('preprocessor')
 
-        # Transform the training data for SHAP
+        if not model or not preprocessor:
+            return None
+
+        # Transform data and get feature names
         X_train_transformed = preprocessor.transform(X_train)
-
-        # SHAP can have trouble with sparse matrices from OneHotEncoder
         if hasattr(X_train_transformed, "toarray"):
             X_train_transformed = X_train_transformed.toarray()
 
-        # Get feature names after preprocessing
         try:
             feature_names = preprocessor.get_feature_names_out()
         except Exception:
-            # Fallback for older sklearn versions or complex transformers
             feature_names = [f"feature_{i}" for i in range(X_train_transformed.shape[1])]
 
-        X_train_transformed_df = pd.DataFrame(X_train_transformed, columns=feature_names)
-
-        # Select the appropriate SHAP explainer
+        # --- SHAP Explainer Selection ---
         model_type = type(model).__name__
         if model_type in SUPPORTED_TREE_MODELS:
-            explainer = shap.TreeExplainer(model, X_train_transformed_df)
+            explainer = shap.TreeExplainer(model)
+            shap_values = explainer.shap_values(X_train_transformed)
         else:
-            # KernelExplainer can be slow; use a sample of the data for performance
-            X_train_sample = shap.sample(X_train_transformed_df, 50)
-            explainer = shap.KernelExplainer(model.predict, X_train_sample)
+            # For KernelExplainer, create a wrapper for predict_proba
+            def predict_proba_wrapper(X):
+                # SHAP expects a single output, so we return the probability of the positive class
+                return model.predict_proba(X)[:, 1]
 
-        shap_values = explainer.shap_values(X_train_transformed_df)
+            X_train_sample = shap.sample(X_train_transformed, 50)
+            explainer = shap.KernelExplainer(predict_proba_wrapper, X_train_sample)
+            shap_values = explainer.shap_values(X_train_transformed)
 
-        # --- Generate and Save Artifacts ---
-        artifact_path = os.path.join(output_dir, "explainability", run_id)
-        os.makedirs(artifact_path, exist_ok=True)
+        # For classifiers, shap_values can be a list (one per class).
+        # We'll use the values for the "positive" class for summaries.
+        if isinstance(shap_values, list) and len(shap_values) == 2:
+            shap_values_for_summary = shap_values[1]
+        else:
+            shap_values_for_summary = shap_values
 
-        plt.figure()
-        shap.summary_plot(shap_values, X_train_transformed_df, show=False)
-        summary_plot_path = os.path.join(artifact_path, "shap_summary.png")
-        plt.savefig(summary_plot_path, bbox_inches='tight')
-        plt.close()
+        # --- Generate Artifacts ---
+        # 1. Summary Plot (bar)
+        fig_summary = plt.figure()
+        shap.summary_plot(shap_values_for_summary, X_train_transformed, feature_names=feature_names, plot_type="bar", show=False)
+        plt.tight_layout()
+        artifacts["figure_artifacts"]["shap_summary_bar.png"] = fig_summary
 
-        plt.figure()
-        shap.summary_plot(shap_values, X_train_transformed_df, plot_type="bar", show=False)
-        beeswarm_plot_path = os.path.join(artifact_path, "shap_beeswarm.png")
-        plt.savefig(beeswarm_plot_path, bbox_inches='tight')
-        plt.close()
+        # 2. Beeswarm Plot
+        fig_beeswarm = plt.figure()
+        shap.summary_plot(shap_values_for_summary, X_train_transformed, feature_names=feature_names, show=False)
+        plt.tight_layout()
+        artifacts["figure_artifacts"]["shap_beeswarm.png"] = fig_beeswarm
 
-        # --- Generate and Save JSON Summary ---
-        mean_abs_shap = np.abs(shap_values).mean(axis=0)
+        # 3. JSON Summary of feature importance
+        mean_abs_shap = np.abs(shap_values_for_summary).mean(axis=0)
         feature_importance = pd.DataFrame(
             list(zip(feature_names, mean_abs_shap)),
             columns=['feature', 'mean_abs_shap_value']
-        )
-        feature_importance = feature_importance.sort_values(
-            by='mean_abs_shap_value', ascending=False
-        ).to_dict(orient='records')
+        ).sort_values(by='mean_abs_shap_value', ascending=False).to_dict(orient='records')
 
-        summary_json_path = os.path.join(artifact_path, "shap_summary.json")
-        with open(summary_json_path, "w") as f:
-            json.dump(feature_importance, f, indent=2)
+        artifacts["json_artifacts"]["shap_summary.json"] = feature_importance
 
-        return {
-            "path": artifact_path,
-            "summary_plot": summary_plot_path,
-            "beeswarm_plot": beeswarm_plot_path,
-            "summary_json": summary_json_path,
-        }
+        return artifacts
+
     except Exception as e:
         print(f"SHAP explainability failed: {e}")
+        # Ensure all created figures are closed on failure
+        for fig in artifacts.get("figure_artifacts", {}).values():
+            plt.close(fig)
         return None
+    finally:
+        # Close any lingering plot figures to avoid memory leaks
+        plt.close('all')

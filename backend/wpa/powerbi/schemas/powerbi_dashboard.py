@@ -1,1 +1,9 @@
-from pydantic import BaseModel\nclass WidgetConfig(BaseModel):\n    id: str\n    type: str\n\nclass DashboardConfig(BaseModel):\n    id: str\n    title: str\n
+from pydantic import BaseModel
+
+class WidgetConfig(BaseModel):
+    id: str
+    type: str
+
+class DashboardConfig(BaseModel):
+    id: str
+    title: str

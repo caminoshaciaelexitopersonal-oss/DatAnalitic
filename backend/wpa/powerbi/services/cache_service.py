@@ -1,1 +1,9 @@
-class CacheService:\n    def __init__(self):\n        self._store = {}\n    def get(self, k):\n        return self._store.get(k)\n    def set(self,k,v):\n        self._store[k]=v\n    def clear(self):\n        self._store.clear()\n
+class CacheService:
+    def __init__(self):
+        self._store = {}
+    def get(self, k):
+        return self._store.get(k)
+    def set(self,k,v):
+        self._store[k]=v
+    def clear(self):
+        self._store.clear()

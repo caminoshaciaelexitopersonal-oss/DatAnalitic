@@ -29,9 +29,9 @@ matplotlib.use("Agg")  # safe backend for servers without display
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-from wpa.powerbi.services.cache_service import CacheService
-from wpa.powerbi.schemas.powerbi_dashboard import DashboardConfig, WidgetConfig
-from wpa.powerbi.services.data_service import DataService
+from backend.wpa.powerbi.services.cache_service import CacheService
+from backend.wpa.powerbi.schemas.powerbi_dashboard import DashboardConfig, WidgetConfig
+from backend.wpa.powerbi.services.data_service import DataService
 
 logger = logging.getLogger(__name__)
 logger.setLevel(os.environ.get("LOGLEVEL", "INFO"))

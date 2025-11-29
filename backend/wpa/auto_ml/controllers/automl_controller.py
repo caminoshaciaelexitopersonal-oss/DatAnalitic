@@ -1,1 +1,3 @@
-def submit_job(payload):\n    """Controller stub for job submission"""\n    return {"job_id":"stub"}\n
+def submit_job(payload):
+    """Controller stub for job submission"""
+    return {"job_id": "stub"}

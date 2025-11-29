@@ -1,4 +1,5 @@
 import pandas as pd
+import numpy as np
 from sklearn.metrics import (
     accuracy_score, precision_score, recall_score, f1_score, roc_auc_score,
     mean_squared_error, r2_score, mean_absolute_error
@@ -18,9 +19,10 @@ def _get_classification_metrics(y_true, y_pred, y_proba=None) -> Dict[str, float
     return metrics
 
 def _get_regression_metrics(y_true, y_pred) -> Dict[str, float]:
+    mse = mean_squared_error(y_true, y_pred)
     return {
-        "mse": mean_squared_error(y_true, y_pred),
-        "rmse": mean_squared_error(y_true, y_pred, squared=False),
+        "mse": mse,
+        "rmse": np.sqrt(mse),
         "mae": mean_absolute_error(y_true, y_pred),
         "r2_score": r2_score(y_true, y_pred),
     }
