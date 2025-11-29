@@ -20,7 +20,9 @@ def explain_model(
     """
     artifacts = {"json_artifacts": {}, "figure_artifacts": {}}
     try:
+ 
         model = pipeline.named_steps.get('classifier')
+ 
         preprocessor = pipeline.named_steps.get('preprocessor')
 
         if not model or not preprocessor:
@@ -36,6 +38,7 @@ def explain_model(
         except Exception:
             feature_names = [f"feature_{i}" for i in range(X_train_transformed.shape[1])]
 
+ 
         # --- SHAP Explainer Selection ---
         model_type = type(model).__name__
         if model_type in SUPPORTED_TREE_MODELS:
@@ -54,6 +57,7 @@ def explain_model(
         # For classifiers, shap_values can be a list (one per class).
         # We'll use the values for the "positive" class for summaries.
         if isinstance(shap_values, list) and len(shap_values) == 2:
+ 
             shap_values_for_summary = shap_values[1]
         else:
             shap_values_for_summary = shap_values
@@ -61,13 +65,16 @@ def explain_model(
         # --- Generate Artifacts ---
         # 1. Summary Plot (bar)
         fig_summary = plt.figure()
+ 
         shap.summary_plot(shap_values_for_summary, X_train_transformed, feature_names=feature_names, plot_type="bar", show=False)
+ 
         plt.tight_layout()
         artifacts["figure_artifacts"]["shap_summary_bar.png"] = fig_summary
 
         # 2. Beeswarm Plot
-        fig_beeswarm = plt.figure()
+        fig_beeswarm = plt.figure() 
         shap.summary_plot(shap_values_for_summary, X_train_transformed, feature_names=feature_names, show=False)
+  
         plt.tight_layout()
         artifacts["figure_artifacts"]["shap_beeswarm.png"] = fig_beeswarm
 

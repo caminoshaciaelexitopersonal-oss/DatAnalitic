@@ -15,6 +15,7 @@ class AutoMLSubmitResponse(BaseModel):
     """Response from the POST /submit endpoint."""
     automl_job_id: str
     celery_task_id: str
+ 
 
 class HPORequest(BaseModel):
     """Payload for the POST /hpo/submit endpoint."""
@@ -27,3 +28,4 @@ class HPOSubmitResponse(BaseModel):
     """Response from the POST /hpo/submit endpoint."""
     hpo_job_id: str
     celery_task_id: str
+ 

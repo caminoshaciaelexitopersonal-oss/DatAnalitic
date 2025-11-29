@@ -1,14 +1,18 @@
 import io
 from backend.celery_worker import celery_app
+ 
 from backend.wpa.auto_ml.pipelines.automl_master_pipeline import run_automl_orchestration
 from backend.core.state_store import StateStore
 import pandas as pd
+ 
 
 @celery_app.task(name="automl.run_full_automl")
 def run_full_automl(job_id: str, request: dict):
     """
     Celery task to run the full AutoML pipeline.
+    NOTE: The underlying implementation is currently broken and disabled.
     """
+ 
     state_store = StateStore()
 
     try:
@@ -64,3 +68,4 @@ def run_full_automl(job_id: str, request: dict):
     except Exception as e:
         state_store.save_job_status(job_id, {"status": "failed", "stage": "automl", "error": str(e)})
         return {"status": "FAILURE", "error": str(e)}
+ 

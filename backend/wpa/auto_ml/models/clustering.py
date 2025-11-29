@@ -1,7 +1,9 @@
 from typing import Dict, Any
 import pandas as pd
+ 
 from sklearn.cluster import KMeans, DBSCAN, AgglomerativeClustering, Birch, MiniBatchKMeans
 from sklearn.mixture import GaussianMixture
+ 
 from backend.wpa.auto_ml.models._base import BaseModelWrapper
 from backend.wpa.auto_ml.model_registry import register_model
 
@@ -14,7 +16,9 @@ class KMeansWrapper(BaseModelWrapper):
     def fit(self, X: pd.DataFrame, y: pd.Series = None): self.model.fit(X)
     def predict(self, X: pd.DataFrame) -> pd.Series: return self.model.predict(X)
     def get_hyperparameter_search_space(self) -> Dict[str, Any]: return {'n_clusters': ('int', (2, 20))}
+ 
     def get_model(self): return self.model
+ 
 
 @register_model('dbscan')
 class DBSCANWrapper(BaseModelWrapper):
@@ -25,6 +29,7 @@ class DBSCANWrapper(BaseModelWrapper):
     def fit(self, X: pd.DataFrame, y: pd.Series = None): self.model.fit(X)
     def predict(self, X: pd.DataFrame) -> pd.Series: return self.model.fit_predict(X)
     def get_hyperparameter_search_space(self) -> Dict[str, Any]: return {'eps': ('float', (0.1, 2.0))}
+ 
     def get_model(self): return self.model
 
 @register_model('agglomerative_clustering')
@@ -70,3 +75,4 @@ class MiniBatchKMeansWrapper(BaseModelWrapper):
     def predict(self, X: pd.DataFrame) -> pd.Series: return self.model.predict(X)
     def get_hyperparameter_search_space(self) -> Dict[str, Any]: return {'n_clusters': ('int', (2, 20))}
     def get_model(self): return self.model
+ 

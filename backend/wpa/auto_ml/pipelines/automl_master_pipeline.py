@@ -22,7 +22,6 @@ from backend.wpa.auto_ml.pipelines.builder import create_full_pipeline
 from backend.wpa.auto_ml.model_registry import MODEL_REGISTRY
 from backend.core.state_store import StateStore
 
-
 def run_automl_orchestration(
     job_id: str,
     user_id: str,
@@ -62,6 +61,7 @@ def run_automl_orchestration(
                 run_id = child_run.info.run_id
                 mlflow.log_param("model_key", model_key)
 
+ 
                 model_class = MODEL_REGISTRY.get(model_key)
                 if not model_class:
                     print(f"Model key {model_key} not found in registry. Skipping.")
@@ -76,6 +76,7 @@ def run_automl_orchestration(
                     numeric_features=numeric_features,
                     categorical_features=categorical_features
                 )
+ 
 
                 training_result = train_model_with_cv(pipeline, X_train, y_train, scoring=scoring)
 
@@ -92,6 +93,7 @@ def run_automl_orchestration(
                 mlflow.log_metrics(evaluation_results["metrics"])
                 mlflow.log_metrics(evaluation_results.get("fairness_metrics", {}))
 
+ 
                 shap_artifacts = explain_model(trained_pipeline, X_train)
                 if shap_artifacts:
                     # Save artifacts to state store
@@ -111,6 +113,7 @@ def run_automl_orchestration(
 
 
                 exported_path = export_model(trained_pipeline, model_key, get_output_dir(job_id), run_id)
+ 
                 model_card = create_model_card(
                     model_key, training_result, evaluation_results, shap_artifacts
                 )
@@ -125,7 +128,9 @@ def run_automl_orchestration(
                 }
                 all_results.append(trial_result)
 
+ 
         best_model_trial = select_best_model(all_results, metric_to_optimize=f"cv_mean_score")
+ 
 
         if best_model_trial:
             mlflow.set_tag("best_model", best_model_trial["model_key"])

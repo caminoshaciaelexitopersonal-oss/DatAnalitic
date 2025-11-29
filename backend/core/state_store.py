@@ -238,6 +238,7 @@ class StateStore:
                 return False
             raise
 
+ 
     def load_artifact_as_bytes(self, job_id: str, artifact_name: str) -> Optional[bytes]:
         """Loads any artifact from MinIO and returns it as raw bytes."""
         key = f"processed/{job_id}/{artifact_name}"
@@ -246,6 +247,7 @@ class StateStore:
             return response['Body'].read()
         except self.s3_client.exceptions.NoSuchKey:
             return None
+
 
 # --- Dependency Injector ---
 @lru_cache()
