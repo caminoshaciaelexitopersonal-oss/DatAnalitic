@@ -2,7 +2,7 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-export type Body_upload_file_unified_v1_mpa_ingestion_upload_file__post = {
+export type Body_uploadFile = {
     session_id: string;
     file: Blob;
 };

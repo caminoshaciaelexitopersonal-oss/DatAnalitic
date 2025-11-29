@@ -13,12 +13,17 @@
     "next": "14.2.3",
     "react": "^18",
     "react-dom": "^18",
-    "recharts": "^2.12.7"
+    "recharts": "^2.12.7",
+    "react-grid-layout": "^1.4.4",
+    "papaparse": "^5.4.1",
+    "zod": "^3.23.8"
   },
   "devDependencies": {
     "@types/node": "^20",
     "@types/react": "^18",
     "@types/react-dom": "^18",
+    "@types/react-grid-layout": "^1.3.5",
+    "@types/papaparse": "^5.3.14",
     "autoprefixer": "^10.4.19",
     "eslint": "^8",
     "eslint-config-next": "14.2.3",

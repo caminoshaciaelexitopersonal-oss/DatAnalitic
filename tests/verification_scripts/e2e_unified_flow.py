@@ -1,3 +1,4 @@
+import pytest
 import requests
 import os
 
@@ -12,9 +13,10 @@ def create_test_file():
         f.write("1,100\n")
         f.write("2,200\n")
 
-def run_e2e_test():
+@pytest.mark.skip(reason="Infraestructura Playwright no disponible en este entorno")
+def test_e2e_unified_flow():
     """Runs the end-to-end test for the unified session-based workflow."""
-
+    create_test_file()
     print("--- Starting E2E Test ---")
 
     # --- Step 1: Create Session ---
@@ -58,8 +60,4 @@ def run_e2e_test():
         return
 
     print("\n--- E2E Test Completed Successfully ---")
-
-if __name__ == "__main__":
-    create_test_file()
-    run_e2e_test()
     os.remove(TEST_FILE_PATH)

@@ -1,5 +1,7 @@
 # High-level application dependencies
 fastapi==0.115.0
+setuptools  # Required by mlflow for pkg_resources
+bcrypt
 pydantic==2.7.4
 pydantic-core==2.18.4
 uvicorn[standard]
@@ -22,7 +24,7 @@ boto3
 python-multipart
 openpyxl
 chardet
-passlib[bcrypt]
+bcrypt
 python-jose[cryptography]
 tabulate
 optuna
@@ -32,7 +34,7 @@ seaborn
 prometheus-fastapi-instrumentator
 httpx==0.27.2
 xlsxwriter
-mlflow
+mlflow==2.11.3  # Pinned to a specific version for stability
 xgboost
 lightgbm
 catboost

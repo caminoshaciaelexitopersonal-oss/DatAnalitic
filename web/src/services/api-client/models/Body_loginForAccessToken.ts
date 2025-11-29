@@ -2,7 +2,7 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-export type Body_login_for_access_token_auth_token_post = {
+export type Body_loginForAccessToken = {
     grant_type?: (string | null);
     username: string;
     password: string;

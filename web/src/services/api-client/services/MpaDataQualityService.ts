@@ -15,7 +15,7 @@ export class MpaDataQualityService {
      * @returns any Successful Response
      * @throws ApiError
      */
-    public static getQualityReportUnifiedV1MpaQualityReportPost(
+    public static getQualityReport(
         requestBody: SessionRequest,
     ): CancelablePromise<Record<string, any>> {
         return __request(OpenAPI, {

@@ -1,40 +1,86 @@
 import pytest
 import json
-from pathlib import Path
-from backend.app.services import audit_service
+import logging
+from uuid import uuid4
+from backend.audit.service import AuditService, JsonFormatter
+
+class MockLogHandler(logging.Handler):
+    """Mock logging handler to check for expected logs."""
+    def __init__(self, *args, **kwargs):
+        self.reset()
+        super().__init__(*args, **kwargs)
+
+    def emit(self, record):
+        self.messages.append(self.format(record))
+
+    def reset(self):
+        self.messages = []
 
 @pytest.fixture
-def temp_audit_log(tmp_path: Path) -> Path:
-    """Fixture to create a temporary audit log file for testing."""
-    temp_file = tmp_path / "test_audit_log.json"
-    audit_service.AUDIT_LOG_PATH = temp_file
-    return temp_file
+def mock_logger():
+    """Fixture to create a logger with a mock handler."""
+    logger = logging.getLogger("test_audit_logger")
+    logger.setLevel(logging.INFO)
 
-def test_write_single_audit_log_entry(temp_audit_log: Path):
-    """Tests that a single entry can be written to a new log file."""
-    entry = {"event": "test", "status": "success"}
-    audit_service.write_audit_log(entry)
-    with open(temp_audit_log, "r") as f:
-        data = json.load(f)
-    assert len(data) == 1
-    assert data[0]["event"] == "test"
+    for handler in logger.handlers[:]:
+        logger.removeHandler(handler)
 
-def test_write_multiple_audit_log_entries(temp_audit_log: Path):
-    """Tests that multiple entries are correctly appended as a JSON array."""
-    audit_service.write_audit_log({"event": "start"})
-    audit_service.write_audit_log({"event": "finish"})
-    with open(temp_audit_log, "r") as f:
-        data = json.load(f)
-    assert len(data) == 2
+    mock_handler = MockLogHandler()
+    formatter = JsonFormatter()
+    mock_handler.setFormatter(formatter)
+    logger.addHandler(mock_handler)
 
-def test_save_code_block(tmp_path: Path):
-    """Tests that a code block is saved to the correct location."""
-    audit_service.CODE_BLOCKS_PATH = tmp_path
-    job_id = "test_job_123"
-    snippet = "print('hello world')"
-    meta = {"step": "test_step"}
-    audit_service.save_code_block(job_id, snippet, meta)
-    job_path = tmp_path / job_id
-    saved_files = list(job_path.glob("test_step_*.py"))
-    assert len(saved_files) == 1
-    assert saved_files[0].read_text() == snippet
+    return logger, mock_handler
+
+def test_audit_service_log_event(mock_logger):
+    """Tests that AuditService.log_event creates a structured JSON log."""
+    logger, handler = mock_logger
+    service = AuditService(logger=logger)
+
+    job_id = uuid4()
+    user_id = "test_user"
+    event_name = "test_event"
+    details = {"key": "value"}
+
+    service.log_event(
+        event_name=event_name,
+        job_id=job_id,
+        user_id=user_id,
+        details=details
+    )
+
+    assert len(handler.messages) == 1
+    log_output = json.loads(handler.messages[0])
+
+    assert log_output["level"] == "INFO"
+    assert log_output["message"] == f"Audit Event Recorded: {event_name}"
+
+    # Corrected assertion: check for keys at the top level
+    assert log_output["job_id"] == str(job_id)
+    assert log_output["user_id"] == user_id
+    assert log_output["event_name"] == event_name
+    assert log_output["details"] == details
+    assert "audit_id" in log_output
+
+def test_json_formatter():
+    """Tests that the JsonFormatter correctly formats a log record."""
+    formatter = JsonFormatter()
+    record = logging.LogRecord(
+        name="test",
+        level=logging.INFO,
+        pathname="test.py",
+        lineno=1,
+        msg="A test message",
+        args=(),
+        exc_info=None
+    )
+
+    record.extra_data = {"custom": "data"}
+
+    formatted_log = formatter.format(record)
+    log_output = json.loads(formatted_log)
+
+    assert log_output["level"] == "INFO"
+    assert log_output["message"] == "A test message"
+    assert log_output["custom"] == "data"
+    assert "timestamp" in log_output

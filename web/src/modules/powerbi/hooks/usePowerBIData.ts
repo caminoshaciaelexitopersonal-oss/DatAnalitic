@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { apiClient } from '@/services/api-client';
+import { PowerBiStyleService } from '@/services/api-client';
 
 export const usePowerBIData = (dashboardId: string, widgetId: string, filters?: any) => {
   const [data, setData] = useState<any[]>([]);
@@ -12,11 +12,16 @@ export const usePowerBIData = (dashboardId: string, widgetId: string, filters?: 
     const fetchData = async () => {
       try {
         setLoading(true);
-        const params = filters ? { filter_values: JSON.stringify(filters) } : {};
-        const response = await apiClient.get(`/powerbi/data/widget/${dashboardId}/${widgetId}`, { params });
-        setData(response.data.data);
+        const filterValues = filters ? JSON.stringify(filters) : undefined;
+        const widgetData = await PowerBiStyleService.getWidgetDataUnifiedV1WpaPowerbiPowerbiDataWidgetDashboardIdWidgetIdGet(
+          dashboardId,
+          widgetId,
+          filterValues,
+        );
+        setData(widgetData.data);
       } catch (err) {
         setError('Failed to fetch widget data');
+        console.error(err);
       } finally {
         setLoading(false);
       }

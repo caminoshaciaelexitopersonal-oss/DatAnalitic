@@ -1,7 +1,7 @@
 import { ClassificationResult, RegressionResult, ClassificationMetric, ModelComparisonResultItem, ClusterResult } from "../types";
 
 // URL base de la API, asumida como variable de entorno inyectada.
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api/v1';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || '/api/v1';
 
 /**
  * Llama al endpoint proxy seguro del backend para interactuar con Gemini.

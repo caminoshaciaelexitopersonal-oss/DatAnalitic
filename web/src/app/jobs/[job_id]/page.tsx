@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { WpaAutomatedAnalysisService, ApiError } from '@/services/api-client';
+import { McpMainControlPlaneService, ApiError } from '@/services/api-client';
 import ReportDownloader from '@/components/ReportDownloader';
 import CodeViewer from '@/components/CodeViewer';
 
@@ -25,8 +25,8 @@ export default function JobStatusPage({ params }: { params: { job_id: string } }
 
     const fetchStatus = async () => {
       try {
-        // Correctly call the static method with the generated name
-        const result = await WpaAutomatedAnalysisService.getJobStatusUnifiedV1WpaAutoAnalysisJobIdStatusGet(jobId);
+        // Use the correct unified service
+        const result = await McpMainControlPlaneService.getJobStatusUnified(jobId);
         setStatus(result as JobStatus);
         if (result.status === 'completed' || result.status === 'failed') {
           if (interval) clearInterval(interval);

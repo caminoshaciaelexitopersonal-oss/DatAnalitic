@@ -86,6 +86,7 @@ export const ChartRenderer: React.FC<ChartRendererProps> = ({
   // ---------------------------
   return (
     <ResponsiveContainer width="100%" height="100%">
+      <>
       {type === "line" && (
         <LineChart data={data}>
           <CartesianGrid strokeDasharray="3 3" />
@@ -145,8 +146,8 @@ export const ChartRenderer: React.FC<ChartRendererProps> = ({
         <PieChart>
           <Pie
             data={data}
-            dataKey={yField}
-            nameKey={xField}
+            dataKey={yField ?? "value"}
+            nameKey={xField ?? "name"}
             outerRadius={90}
             label
           >
@@ -177,6 +178,7 @@ export const ChartRenderer: React.FC<ChartRendererProps> = ({
           <Legend />
         </RadarChart>
       )}
+      </>
     </ResponsiveContainer>
   );
 };
