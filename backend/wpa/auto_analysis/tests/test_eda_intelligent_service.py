@@ -1,20 +1,11 @@
 import pandas as pd
 import pytest
-import os
-import shutil
-import json
+import matplotlib.pyplot as plt
 from backend.wpa.auto_analysis.eda_intelligent_service import EDAIntelligentService
 
 @pytest.fixture
 def eda_service():
     """Provides an EDAIntelligentService instance with a sample DataFrame."""
-    job_id = "test_eda_job"
-    output_dir = f"data/processed/{job_id}/"
-
-    # Cleanup before test
-    if os.path.exists(output_dir):
-        shutil.rmtree(output_dir)
-
     data = {
         'numeric': [1, 2, 3, None, 5],
         'categorical': ['A', 'B', 'A', 'C', 'B'],
@@ -23,43 +14,57 @@ def eda_service():
     df = pd.DataFrame(data)
     inferred_types = {'numeric': 'numeric', 'categorical': 'categorical', 'binary': 'numeric'}
 
-    service = EDAIntelligentService(df, inferred_types, job_id)
+    # Correctly instantiate the service
+    service = EDAIntelligentService(df, inferred_types)
 
-    yield service # Provide the service to the test
+    yield service
 
-    # Cleanup after test
-    if os.path.exists(output_dir):
-        shutil.rmtree(output_dir)
+def test_run_automated_eda_returns_artifacts(eda_service):
+    """Tests that run_automated_eda returns the expected artifact structure."""
+    artifacts = eda_service.run_automated_eda()
 
-def test_auto_summary_creates_json(eda_service):
-    """Tests that auto_summary creates the expected JSON file."""
-    eda_service.auto_summary()
+    assert "json_artifacts" in artifacts
+    assert "figure_artifacts" in artifacts
 
-    expected_path = os.path.join(eda_service.output_dir, "summary_statistics.json")
-    assert os.path.exists(expected_path)
+    # Check for specific JSON artifacts
+    assert "summary_statistics.json" in artifacts["json_artifacts"]
+    assert "missing_values_report.json" in artifacts["json_artifacts"]
 
-    with open(expected_path, "r") as f:
-        data = json.load(f)
+    # Check for specific figure artifacts
+    assert "missing_values_heatmap.png" in artifacts["figure_artifacts"]
+    assert "numeric_distribution.png" in artifacts["figure_artifacts"]
 
-    assert "numeric" in data
-    assert "categorical" in data
-    assert "binary" in data
-    assert data["numeric"]["count"] == 4
+    # Close the figures to prevent memory leaks
+    for fig in artifacts["figure_artifacts"].values():
+        if fig:
+            plt.close(fig)
 
-def test_missing_report_creates_json_and_png(eda_service):
-    """Tests that missing_report creates both a JSON report and a PNG heatmap."""
-    eda_service.missing_report()
+def test_summary_statistics_content(eda_service):
+    """Tests the content of the summary statistics artifact."""
+    artifacts = eda_service.run_automated_eda()
+    summary = artifacts["json_artifacts"]["summary_statistics.json"]
 
-    expected_json_path = os.path.join(eda_service.output_dir, "missing_values_report.json")
-    expected_png_path = os.path.join(eda_service.output_dir, "missing_values_heatmap.png")
+    assert "numeric" in summary
+    assert "categorical" in summary
+    assert "binary" in summary
+    assert summary["numeric"]["count"] == 4
 
-    assert os.path.exists(expected_json_path)
-    assert os.path.exists(expected_png_path)
+    # Close figures
+    for fig in artifacts["figure_artifacts"].values():
+        if fig:
+            plt.close(fig)
 
-    with open(expected_json_path, "r") as f:
-        data = json.load(f)
+def test_missing_report_content(eda_service):
+    """Tests the content of the missing values report artifact."""
+    artifacts = eda_service.run_automated_eda()
+    missing_report = artifacts["json_artifacts"]["missing_values_report.json"]
 
-    assert "numeric" in data
-    assert data["numeric"]["count"] == 1
-    assert data["numeric"]["percentage"] == 20.0
-    assert data["categorical"]["count"] == 0
+    assert "numeric" in missing_report
+    assert missing_report["numeric"]["count"] == 1
+    assert missing_report["numeric"]["percentage"] == 20.0
+    assert missing_report["categorical"]["count"] == 0
+
+    # Close figures
+    for fig in artifacts["figure_artifacts"].values():
+        if fig:
+            plt.close(fig)
