@@ -129,6 +129,8 @@ services:
       context: .
       dockerfile: backend/Dockerfile
     working_dir: /app
+    environment:
+      - PYTHONPATH=/app
     command: ["python", "-m", "pytest", "backend/tests"]
     depends_on:
       - redis
