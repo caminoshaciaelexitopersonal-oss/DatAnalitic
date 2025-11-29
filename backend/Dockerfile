@@ -21,7 +21,7 @@ COPY backend/requirements.txt .
 RUN python -m pip install --upgrade pip setuptools wheel
 
 # Instala las dependencias de Python desde el archivo de requerimientos
-RUN pip uninstall -y bcrypt passlib && pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt
 
 # Copia el código de la aplicación del backend, preservando la estructura del paquete
 COPY backend /app/backend

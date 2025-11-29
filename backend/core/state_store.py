@@ -92,7 +92,8 @@ class StateStore:
 
     def _initialize_db(self):
         # This is for development convenience. In production, use Alembic migrations.
-        Base.metadata.create_all(bind=self.engine)
+        # Base.metadata.create_all(bind=self.engine) # Deactivated for safety
+        pass
 
     @contextmanager
     def session_scope(self) -> Session:
