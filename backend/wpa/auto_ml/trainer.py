@@ -24,7 +24,7 @@ def train_model_with_cv(
         }
 
     model_key = pipeline.steps[-1][0] if pipeline.steps else "pipeline"
-    mlflow.log_param("model_key", model_key)
+ 
     mlflow.log_param("scoring_metric", scoring)
     mlflow.log_param("cv_folds", cv)
 

@@ -2,7 +2,10 @@ from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import FileResponse
 from backend.wpa.auto_ml.model_registry import MODEL_REGISTRY
 from backend.wpa.auto_ml.tasks import run_full_automl
-from backend.wpa.auto_ml.schemas import AutoMLRequest, AutoMLSubmitResponse
+ 
+from backend.wpa.auto_ml.hpo import run_hpo_study
+from backend.wpa.auto_ml.schemas import AutoMLRequest, AutoMLSubmitResponse, HPORequest, HPOSubmitResponse
+ 
 from backend.core.state_store import get_state_store, StateStore
 import uuid
 
@@ -47,12 +50,27 @@ async def submit_automl_job(
     job = state_store.get_job(uuid.UUID(request.job_id))
     if not job:
         raise HTTPException(status_code=404, detail=f"Main job_id '{request.job_id}' not found.")
+ 
+    # Enqueue the Celery task
+    task = run_full_automl.delay(request.job_id, request.dict())
 
-    # Generate a unique ID for this AutoML run
-    automl_job_id = str(uuid.uuid4())
+    return AutoMLSubmitResponse(automl_job_id=request.job_id, celery_task_id=task.id)
+
+@router.post("/hpo/submit", response_model=HPOSubmitResponse, operation_id="submitHPOJob")
+async def submit_hpo_job(
+    request: HPORequest,
+    state_store: StateStore = Depends(get_state_store),
+):
+    """
+    Submits a new HPO job.
+    """
+    # Verify that the main job_id exists
+    job = state_store.get_job(uuid.UUID(request.job_id))
+    if not job:
+        raise HTTPException(status_code=404, detail=f"Main job_id '{request.job_id}' not found.")
 
     # Enqueue the Celery task
-    # task = run_full_automl.delay(automl_job_id, request.dict()) # FIXME: Disabled until auto_ml module is fixed
-    task_id = "disabled-due-to-broken-imports"
+    task = run_hpo_study.delay(request.job_id, request.dict())
 
-    return AutoMLSubmitResponse(automl_job_id=automl_job_id, celery_task_id=task_id)
+    return HPOSubmitResponse(hpo_job_id=request.job_id, celery_task_id=task.id)
+ 

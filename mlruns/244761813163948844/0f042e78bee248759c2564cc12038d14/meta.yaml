@@ -1,0 +1,14 @@
+artifact_uri: file:///app/mlruns/244761813163948844/0f042e78bee248759c2564cc12038d14/artifacts
+end_time: 1764366774316
+entry_point_name: ''
+experiment_id: '244761813163948844'
+lifecycle_stage: active
+run_id: 0f042e78bee248759c2564cc12038d14
+run_name: auspicious-hare-376
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1764366768983
+status: 3
+tags: []
+user_id: jules

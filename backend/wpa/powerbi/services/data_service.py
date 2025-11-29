@@ -24,9 +24,9 @@ import pandas as pd
 import sqlalchemy
 from sqlalchemy import text
 
-from wpa.powerbi.services.cache_service import CacheService
+from backend.wpa.powerbi.services.cache_service import CacheService
 # these connectors were provided earlier
-from wpa.powerbi.services.drive_connectors import GoogleDriveConnector, OneDriveConnector
+from backend.wpa.powerbi.services.drive_connectors import GoogleDriveConnector, OneDriveConnector
 
 logger = logging.getLogger(__name__)
 logger.setLevel(os.environ.get("LOGLEVEL", "INFO"))

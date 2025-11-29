@@ -23,8 +23,8 @@ from typing import Dict, Any, Optional
 
 import pandas as pd
 
-from wpa.powerbi.services.data_service import DataService
-from wpa.auto_ml.automl_recommender import AutoMLRecommender
+from backend.wpa.powerbi.services.data_service import DataService
+from backend.wpa.auto_ml.automl_recommender import AutoMLRecommender
 
 logger = logging.getLogger(__name__)
 logger.setLevel(os.environ.get("LOGLEVEL", "INFO"))
@@ -100,7 +100,7 @@ class ModelService:
         req = {"source": "local", "path": dataset_name, "limit": max_samples}
         df = DATA_SERVICE.execute_query(req)
         # forward to quick_predictability in recommender
-        from wpa.auto_ml.automl_recommender import quick_predictability
+        from backend.wpa.auto_ml.automl_recommender import quick_predictability
         return quick_predictability(df, target, max_samples=max_samples)
 
     # ---------------------------

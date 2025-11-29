@@ -248,7 +248,7 @@ class StateStore:
         except self.s3_client.exceptions.NoSuchKey:
             return None
 
- 
+
 # --- Dependency Injector ---
 @lru_cache()
 def get_state_store() -> StateStore:

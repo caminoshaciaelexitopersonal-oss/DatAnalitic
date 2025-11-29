@@ -15,9 +15,9 @@ from backend.core.config import config
 # New imports for code inspection and report generation
 from backend.wpa.code_inspector.recorder import CodeRecorder
 from backend.wpa.code_inspector.exporter import CodeExporter
-from backend.wpa.report_generator.docx_generator import DocxGenerator
-from backend.wpa.report_generator.excel_generator import ExcelGenerator
-from backend.wpa.report_generator.pdf_generator import PDFGenerator
+from backend.wpa.report_generator.docx_generator import create_docx_report
+from backend.wpa.report_generator.excel_generator import create_excel_report
+from backend.wpa.report_generator.pdf_generator import create_pdf_report
 
 # Existing imports
 router = APIRouter(tags=["WPA - Automated Analysis"])
