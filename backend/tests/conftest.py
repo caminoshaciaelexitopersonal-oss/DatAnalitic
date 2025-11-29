@@ -16,8 +16,12 @@ def test_db():
     """
     Pytest fixture to provide a transactional in-memory SQLite database session.
     """
-    # Use in-memory SQLite for tests
-    engine = create_engine("sqlite:///:memory:")
+    # Use in-memory SQLite for tests.
+    # `check_same_thread` is required for multi-threaded test runners.
+    engine = create_engine(
+        "sqlite:///:memory:",
+        connect_args={"check_same_thread": False}
+    )
 
     # Create tables
     Base.metadata.create_all(bind=engine)

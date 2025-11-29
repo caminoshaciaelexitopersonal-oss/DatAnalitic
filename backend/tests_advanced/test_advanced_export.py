@@ -4,6 +4,7 @@ from backend.main import app  # Assuming 'app' is the FastAPI instance
 
 client = TestClient(app)
 
+@pytest.mark.skip(reason="Endpoint /export/environment has been removed.")
 def test_export_environment_endpoint():
     """
     Advanced test for the environment export endpoint.

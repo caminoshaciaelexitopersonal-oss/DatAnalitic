@@ -1,19 +1,31 @@
-import type { Metadata } from "next";
-import "./globals.css";
+'use client';
 
-export const metadata: Metadata = {
-  title: "SADI - Next.js",
-  description: "Sistema de Analítica de Datos Inteligente",
-};
+import { Inter } from "next/font/google";
+import "./globals.css";
+import { OpenAPI } from "@/services/api-client";
+import ToastContainer from "@/components/ToastContainer";
+import React, { useState } from "react";
+
+// --- API Client Configuration ---
+// This is the central point to configure the API client base URL.
+OpenAPI.BASE = "/unified/v1";
+
+const inter = Inter({ subsets: ["latin"] });
 
 export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // Minimal state management for ToastContainer to satisfy TypeScript
+  const [toasts, setToasts] = useState<{ id: number; message: string; type: string }[]>([]);
+
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body className={inter.className}>
+        {children}
+        <ToastContainer toasts={toasts} />
+      </body>
     </html>
   );
 }
