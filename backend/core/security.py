@@ -37,9 +37,12 @@ def initialize_default_admin(db: Session):
     """
     Checks for and creates a default admin user if one doesn't exist.
     This function should be called during application startup.
+    Credentials are read from environment variables for security.
     """
     try:
-        admin_user = db.query(UserModel).filter(UserModel.username == "admin").first()
+        admin_username = os.getenv("DEFAULT_ADMIN_USER", "admin")
+        admin_user = db.query(UserModel).filter(UserModel.username == admin_username).first()
+
         if not admin_user:
             default_password = os.getenv("DEFAULT_ADMIN_PASSWORD")
             if not default_password:
@@ -48,9 +51,9 @@ def initialize_default_admin(db: Session):
 
             hashed_password = hash_password(default_password)
             new_admin = UserModel(
-                username="admin",
+                username=admin_username,
                 full_name="Admin User",
-                email="admin@example.com",
+                email=f"{admin_username}@example.com",
                 hashed_password=hashed_password,
                 role="admin",
                 disabled=False
