@@ -38,12 +38,10 @@ def master_pipeline_task(job_id: str):
         # Use the IngestionService to process the file correctly
         # NOTE: Since this is a Celery task (sync), we need to run the async service method in an event loop.
         import asyncio
-        from backend.mpa.ingestion.service import IngestionService
-        from backend.mpa.quality.service import DataQualityService
+        from backend.mpa.ingestion.service import get_ingestion_service
 
-        # Manually instantiate the service and its dependencies
-        quality_service = DataQualityService()
-        ingestion_service = IngestionService(state_store=state_store, quality_service=quality_service)
+        # Resolve services using the application's dependency injectors
+        ingestion_service = get_ingestion_service(state_store=state_store)
 
         mock_upload_file = UploadFile(filename=job.original_filename, file=raw_file_bytes)
         df = asyncio.run(ingestion_service.process_uploaded_file(mock_upload_file, job_id))
@@ -85,11 +83,16 @@ def master_pipeline_task(job_id: str):
         manifest["steps"].append({"step": "eda", "status": "completed"})
 
         # --- Step 4: AutoML (Conditional) ---
-        # TODO: Refactor AutoML to read/write from StateStore instead of local file system.
-        # This is a major change and is deferred for now.
+        state_store.save_job_status(job_id, {"status": "running", "stage": "AutoML"})
+        # TODO: This step is a placeholder. Full AutoML implementation is pending.
+        print(f"INFO: Skipping AutoML for job_id {job_id} as it is not yet implemented in the main pipeline.")
+        manifest["steps"].append({"step": "automl", "status": "skipped", "details": "Not implemented in pipeline"})
 
         # --- Step 5: Report Generation ---
-        # TODO: Refactor report generators to read artifacts from StateStore.
+        state_store.save_job_status(job_id, {"status": "running", "stage": "Report Generation"})
+        # TODO: This step is a placeholder. Full Report Generation is pending.
+        print(f"INFO: Skipping Report Generation for job_id {job_id} as it is not yet implemented in the main pipeline.")
+        manifest["steps"].append({"step": "report_generation", "status": "skipped", "details": "Not implemented in pipeline"})
 
         # --- Step 6: Centralized Logging & Finalization ---
         state_store.save_job_status(job_id, {"status": "running", "stage": "Finalizing"})

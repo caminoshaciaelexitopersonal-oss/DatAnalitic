@@ -8,7 +8,8 @@ import React, { useState } from "react";
 
 // --- API Client Configuration ---
 // This is the central point to configure the API client base URL.
-OpenAPI.BASE = "/unified/v1";
+// It reads from an environment variable to allow different configurations per environment.
+OpenAPI.BASE = process.env.NEXT_PUBLIC_API_URL || "/unified/v1";
 
 const inter = Inter({ subsets: ["latin"] });
 
