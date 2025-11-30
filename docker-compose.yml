@@ -62,7 +62,7 @@ services:
       sh -c "pip install mlflow psycopg2-binary &&
              mkdir -p /data/mlruns /data/artifacts &&
              mlflow server --host 0.0.0.0 --port 5000
-             --backend-store-uri sqlite:////data/mlruns/mlflow.db
+             --backend-store-uri postgresql://sadi_user:sadi_password@postgres:5432/sadi_db
              --default-artifact-root file:/data/artifacts"
     ports:
       - "5000:5000"
