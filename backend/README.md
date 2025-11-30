@@ -1,44 +1,43 @@
-# Backend
+# Backend de SADI
 
-## 1. Propósito de esta carpeta
+Este directorio contiene todo el código fuente del backend de la aplicación SADI, construido con FastAPI.
 
-Esta carpeta contiene todo el código fuente del servidor SADI. Es responsable de la lógica de negocio, el procesamiento de datos, la gestión de modelos de machine learning, la comunicación con la base de datos y la exposición de la API RESTful para el frontend.
+## Arquitectura
 
-## 2. Estructura interna
+El backend sigue una arquitectura modular diseñada para la escalabilidad y el mantenimiento, dividida en tres capas principales:
 
-La arquitectura del backend sigue el patrón **MCP + MPA + WPA**:
+-   **MCP (Main Control Plane):** Punto de entrada centralizado para orquestar los trabajos de análisis.
+-   **MPA (Modular Process Architecture):** Módulos de lógica de negocio independientes que realizan tareas específicas (p. ej., ingestión de datos, calidad de datos).
+-   **WPA (Workflow Process Automation):** Orquesta flujos de trabajo complejos llamando a uno o más MPA en secuencia.
 
--   `/mcp` (Main Control Plane): Orquesta las sesiones y los trabajos de alto nivel.
--   `/mpa` (Modular Process Architecture): Contiene los módulos de proceso de negocio encapsulados (ej. Ingesta, EDA, Calidad de Datos).
--   `/wpa` (Workflow Process Automation): Contiene flujos de trabajo automatizados que orquestan llamadas a los MPA para ejecutar tareas complejas.
--   `/app`: Código heredado y servicios centrales en proceso de migración.
--   `/audit`: Servicio de auditoría centralizado para el logging de eventos críticos.
--   `/llm`: Lógica para la integración y enrutamiento de modelos de lenguaje (LLMs).
--   `/middleware`: Middlewares personalizados para la aplicación FastAPI.
--   `/tests`: Pruebas unitarias y de integración para asegurar la calidad del código.
--   `app_factory.py`: Punto de entrada que construye y configura la aplicación FastAPI.
--   `celery_worker.py`: Define el trabajador Celery para la ejecución de tareas asíncronas.
--   `requirements.in` / `requirements.txt`: Archivos de gestión de dependencias de Python.
+## Archivos Clave
 
-## 3. Flujos principales
+-   `app_factory.py`: Crea y configura la aplicación FastAPI, registrando todos los routers de la API.
+-   `core/state_store.py`: Gestiona todo el estado de la aplicación, interactuando con PostgreSQL, MinIO y Redis.
+-   `wpa/tasks.py`: Contiene la `master_pipeline_task` de Celery, que orquesta el flujo de trabajo de análisis de datos de extremo a extremo.
 
-1.  **Flujo de Ingesta:** El frontend envía un archivo al endpoint de `/mpa/ingestion`. El servicio de ingestión procesa el archivo, lo valida y lo almacena.
-2.  **Flujo de Análisis (WPA):** Una solicitud de análisis inicia un flujo en el WPA, que a su vez llama a diferentes MPAs (EDA, Calidad, etc.) para realizar el análisis.
-3.  **Tareas Asíncronas:** Tareas pesadas como el entrenamiento de modelos son delegadas a Celery y se ejecutan en segundo plano por el `worker`.
+## Gestión de Dependencias de Python
 
-## 4. Reglas y convenciones del módulo
+Este proyecto utiliza `pip-tools` para gestionar las dependencias y garantizar compilaciones reproducibles y estables. **No edite el archivo `requirements.txt` manualmente.**
 
--   Todo el código nuevo debe seguir la arquitectura MCP + MPA + WPA.
--   Las dependencias deben gestionarse a través de `pip-tools` (`requirements.in`).
--   Las pruebas unitarias son obligatorias para la nueva funcionalidad.
--   El versionado de Python debe ser **3.12**.
+### Archivos Clave de Dependencias
 
-## 5. Consideraciones de seguridad
+-   `requirements.in`: Este archivo contiene las dependencias directas y de alto nivel del proyecto. **Para añadir o actualizar una dependencia, edite este archivo.**
+-   `requirements.txt`: Este es un archivo de bloqueo (`lockfile`) autogenerado que contiene las versiones exactas de todas las dependencias (incluidas las transitivas). **No edite este archivo directamente.**
 
--   Las claves de API y otros secretos NUNCA deben estar hardcodeados. Deben ser gestionados a través de variables de entorno.
--   Toda entrada del usuario debe ser validada y sanitizada. El `HardeningMiddleware` provee una capa inicial de protección.
+### Procedimiento para Actualizar Dependencias
 
-## 6. Cambios relevantes
+1.  **Añadir o modificar** la dependencia deseada en el archivo `backend/requirements.in`.
+2.  **Regenerar el `lockfile`** (`requirements.txt`) ejecutando el siguiente comando desde la raíz del repositorio:
 
--   **Q4 2025:** Migración a la arquitectura MCP + MPA + WPA.
--   **Q4 2025:** Centralización del logging en el servicio de Auditoría.
+    ```bash
+    sudo docker compose run --rm tester sh -c "pip install pip-tools && pip-compile --output-file=backend/requirements.txt backend/requirements.in"
+    ```
+
+3.  **Reconstruir la imagen de Docker** para que los cambios surtan efecto:
+
+    ```bash
+    sudo docker compose build backend
+    ```
+
+Seguir este procedimiento asegura que el entorno de dependencias se mantenga consistente y estable para todos los desarrolladores.
