@@ -24,9 +24,7 @@ docker-compose.override.yml
 
 # Archivos de entorno
 .env
-
 *.env.*
-
 *.env.local
 
 # Archivos de sistema operativo
@@ -40,4 +38,6 @@ Thumbs.db
 *.db
 *.sqlite
 *.sqlite3
-\n# Catboost artifact files\ncatboost_info/
+
+# Catboost artifact files
+catboost_info/
