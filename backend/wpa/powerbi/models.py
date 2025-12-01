@@ -1,6 +1,6 @@
 from sqlalchemy import Column, Integer, String, JSON, ForeignKey
 from sqlalchemy.orm import relationship
-from backend.core.database import Base
+from backend.core.state_store import Base
 
 class Dashboard(Base):
     __tablename__ = "powerbi_dashboards"

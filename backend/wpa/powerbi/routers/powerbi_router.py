@@ -4,7 +4,7 @@ from pydantic import BaseModel
 from starlette.responses import FileResponse
 from sqlalchemy.orm import Session
 
-from backend.core.database import get_db
+from backend.core.dependencies import get_db
 from backend.wpa.powerbi.models import Widget
 from backend.wpa.powerbi.services.data_service import DataService
 from backend.wpa.powerbi.services.viz_service import VisualizationService

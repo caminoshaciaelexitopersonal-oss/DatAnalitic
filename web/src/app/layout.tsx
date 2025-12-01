@@ -7,8 +7,8 @@ import ToastContainer from "@/components/ToastContainer";
 import React, { useState } from "react";
 
 // --- API Client Configuration ---
-// Bypass the Next.js proxy and connect directly to the backend for robust communication.
-OpenAPI.BASE = "http://localhost:8000/unified/v1";
+// Configure the API client to use the Next.js proxy for robust, CORS-free communication.
+OpenAPI.BASE = "/unified/v1";
 
 const inter = Inter({ subsets: ["latin"] });
 
