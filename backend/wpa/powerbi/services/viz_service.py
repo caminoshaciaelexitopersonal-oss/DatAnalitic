@@ -22,14 +22,18 @@ import json
 import logging
 from typing import Dict, Any, List, Optional
 from pathlib import Path
+import numpy as np
 
 import pandas as pd
 import matplotlib
 matplotlib.use("Agg")  # safe backend for servers without display
 import matplotlib.pyplot as plt
 import seaborn as sns
+from fpdf import FPDF  # fpdf2 library is installed as fpdf2, but imported as fpdf
 
 from backend.wpa.powerbi.services.cache_service import CacheService
+from sqlalchemy.orm import Session
+from backend.wpa.powerbi.models import Dashboard, Widget
 from backend.wpa.powerbi.schemas.powerbi_dashboard import DashboardConfig, WidgetConfig
 from backend.wpa.powerbi.services.data_service import DataService
 
@@ -39,59 +43,63 @@ logger.setLevel(os.environ.get("LOGLEVEL", "INFO"))
 CACHE = CacheService()
 DATA_SERVICE = DataService()
 
-DASHBOARD_FOLDER = Path(os.environ.get("SADI_POWERBI_DASHBOARDS", "backend/wpa/powerbi/dashboards"))
-
-
 class VisualizationService:
-    def __init__(self):
-        self._dash_cache = {}
-        self._dash_folder = DASHBOARD_FOLDER
+    def __init__(self, db: Session):
+        self.db = db
 
     # ---------------------------
-    # Dashboard load / list
+    # Dashboard CRUD
     # ---------------------------
-    def get_available_dashboards(self) -> List[str]:
-        """List dashboard filenames (without extension) in dashboards folder."""
-        files = []
-        if not self._dash_folder.exists():
-            return files
-        for p in sorted(self._dash_folder.iterdir()):
-            if p.suffix.lower() in (".json", ".yaml", ".yml"):
-                files.append(p.stem)
-        return files
+    def get_dashboards(self) -> List[Dict[str, Any]]:
+        dashboards = self.db.query(Dashboard).all()
+        return [{"id": d.id, "name": d.name, "description": d.description} for d in dashboards]
 
-    def load_dashboard(self, dashboard_id: str) -> Optional[DashboardConfig]:
-        """
-        Load dashboard configuration from disk (JSON or YAML).
-        Returns DashboardConfig dataclass/dict or None if not found.
-        """
-        # cache hit
-        if dashboard_id in self._dash_cache:
-            return self._dash_cache[dashboard_id]
+    def get_dashboard_details(self, dashboard_id: int) -> Optional[Dict[str, Any]]:
+        dashboard = self.db.query(Dashboard).filter(Dashboard.id == dashboard_id).first()
+        if not dashboard:
+            return None
 
-        # try json then yaml
-        jpath = self._dash_folder / f"{dashboard_id}.json"
-        ypath = self._dash_folder / f"{dashboard_id}.yaml"
-        if jpath.exists():
-            try:
-                with open(jpath, "r", encoding="utf8") as fh:
-                    cfg = json.load(fh)
-                self._dash_cache[dashboard_id] = cfg
-                return cfg
-            except Exception as e:
-                logger.exception("Failed loading dashboard JSON %s: %s", jpath, e)
-                return None
-        if ypath.exists():
-            try:
-                import yaml
-                with open(ypath, "r", encoding="utf8") as fh:
-                    cfg = yaml.safe_load(fh)
-                self._dash_cache[dashboard_id] = cfg
-                return cfg
-            except Exception as e:
-                logger.exception("Failed loading dashboard YAML %s: %s", ypath, e)
-                return None
-        return None
+        widgets_data = []
+        for w in dashboard.widgets:
+            widgets_data.append({
+                "id": w.id,
+                "title": w.title,
+                "type": w.type,
+                **w.config,  # Unpack config JSON
+                **w.layout   # Unpack layout JSON
+            })
+
+        return {
+            "id": dashboard.id,
+            "name": dashboard.name,
+            "layout": {"widgets": widgets_data}
+        }
+
+    def create_dashboard(self, name: str, description: str) -> Dashboard:
+        db_dashboard = Dashboard(name=name, description=description)
+        self.db.add(db_dashboard)
+        self.db.commit()
+        self.db.refresh(db_dashboard)
+        return db_dashboard
+
+    def add_widget(self, dashboard_id: int, title: str, type: str, config: Dict, layout: Dict) -> Widget:
+        db_widget = Widget(
+            dashboard_id=dashboard_id,
+            title=title,
+            type=type,
+            config=config,
+            layout=layout
+        )
+        self.db.add(db_widget)
+        self.db.commit()
+        self.db.refresh(db_widget)
+        return db_widget
+
+    def delete_widget(self, widget_id: int):
+        db_widget = self.db.query(Widget).filter(Widget.id == widget_id).first()
+        if db_widget:
+            self.db.delete(db_widget)
+            self.db.commit()
 
     # ---------------------------
     # Widget processing pipeline
@@ -152,6 +160,32 @@ class VisualizationService:
                 records = df_proc[[x, y]].dropna().to_dict(orient="records")
                 return {"data": records, "meta": {"type": "scatter", "x": x, "y": y}}
 
+            if wtype == "histogram":
+                x = widget.get("xField") or df_proc.select_dtypes(include=["number"]).columns[0]
+                bins = widget.get("bins", 20)
+                counts, bin_edges = np.histogram(df_proc[x].dropna(), bins=bins)
+                records = [{"name": f"{bin_edges[i]:.2f}-{bin_edges[i+1]:.2f}", "value": int(counts[i])} for i in range(len(counts))]
+                return {"data": records, "meta": {"type": "histogram", "xField": "name", "series": ["value"]}}
+
+            if wtype == "boxplot":
+                series = widget.get("series") or df_proc.select_dtypes(include=["number"]).columns.tolist()
+                summary = df_proc[series].describe().to_dict()
+                records = [{"name": col, "q1": data["25%"], "q3": data["75%"], "median": data["50%"], "min": data["min"], "max": data["max"]} for col, data in summary.items()]
+                return {"data": records, "meta": {"type": "boxplot"}}
+
+            if wtype == "heatmap":
+                x = widget.get("xField")
+                y = widget.get("yField")
+                z = widget.get("zField")
+                if not all([x, y, z]):
+                    raise ValueError("Heatmap requires xField, yField, and zField")
+                pivot_df = df_proc.pivot_table(index=y, columns=x, values=z, aggfunc='mean').fillna(0)
+                records = []
+                for yi in pivot_df.index:
+                    for xi in pivot_df.columns:
+                        records.append({"x": xi, "y": yi, "value": pivot_df.loc[yi, xi]})
+                return {"data": records, "meta": {"type": "heatmap", "x": pivot_df.columns.tolist(), "y": pivot_df.index.tolist()}}
+
             # fallback: return sample rows
             return {"data": df_proc.head(500).to_dict(orient="records"), "meta": {"type": "sample"}}
 
@@ -160,54 +194,75 @@ class VisualizationService:
             raise
 
     # ---------------------------
-    # server-side image generation (small preview)
+    # Exporting
     # ---------------------------
-    def render_widget_preview_png(self, widget: Dict[str, Any], df: pd.DataFrame, out_path: Optional[str] = None) -> str:
+    def export_widget(self, widget: Dict[str, Any], df: pd.DataFrame, format: str, out_path: Optional[str] = None) -> str:
         """
-        Render a small PNG preview for a widget. Returns path to PNG.
-        If out_path not provided, create tmp file in /tmp.
-        NOTE: keep previews small to avoid memory pressure.
+        Export a widget's data or visualization to a specified format.
+        Returns the path to the generated file.
         """
-        try:
-            wtype = widget.get("type", "table")
-            if out_path is None:
-                out_path = f"/tmp/pbi_preview_{widget.get('id','widget')}.png"
+        if out_path is None:
+            out_path = f"/tmp/{widget.get('id', 'export')}.{format}"
 
-            plt.figure(figsize=(6, 4))
-            sns.set_style("whitegrid")
-
-            if wtype in ("bar", "column"):
-                x = widget.get("xField") or df.columns[0]
-                series = widget.get("series") or [c for c in df.select_dtypes(include=["number"]).columns if c != x][:1]
-                # simple bar of first series
-                agg = df.groupby(x)[series[0]].sum().reset_index()
-                sns.barplot(data=agg, x=x, y=series[0])
-            elif wtype == "line":
-                x = widget.get("xField") or df.columns[0]
-                series = widget.get("series") or [c for c in df.select_dtypes(include=["number"]).columns if c != x][:1]
-                df_sorted = df.sort_values(by=x)
-                plt.plot(df_sorted[x], df_sorted[series[0]])
-            elif wtype in ("pie", "donut"):
-                x = widget.get("xField") or df.columns[0]
-                agg = df.groupby(x).size().reset_index(name="count").sort_values("count", ascending=False).head(10)
-                plt.pie(agg["count"], labels=agg[x], autopct="%1.1f%%")
-            elif wtype == "scatter":
-                x = widget.get("xField") or df.columns[0]
-                y = widget.get("yField") or df.select_dtypes(include=["number"]).columns[0]
-                plt.scatter(df[x], df[y], s=10, alpha=0.6)
-            else:
-                # fallback table preview
-                table = df.head(10)
-                plt.axis("off")
-                plt.table(cellText=table.values, colLabels=table.columns, loc="center")
-
-            plt.tight_layout()
-            plt.savefig(out_path, dpi=150)
-            plt.close()
+        if format == "csv":
+            df.to_csv(out_path, index=False)
             return out_path
-        except Exception as e:
-            logger.exception("render_widget_preview_png failed: %s", e)
-            raise
+        elif format == "json":
+            df.to_json(out_path, orient="records", indent=2)
+            return out_path
+        elif format in ("png", "svg", "pdf"):
+            # Use the matplotlib renderer
+            self._render_matplotlib_chart(widget, df, out_path, format=format)
+            return out_path
+        else:
+            raise ValueError(f"Unsupported export format: {format}")
+
+    def _render_matplotlib_chart(self, widget: Dict[str, Any], df: pd.DataFrame, out_path: str, format: str = "png"):
+        """
+        Internal method to render a matplotlib chart and save it.
+        Can save as png, svg, or pdf.
+        """
+        wtype = widget.get("type", "table")
+
+        plt.figure(figsize=(10, 6))
+        sns.set_theme(style="whitegrid")
+        plt.title(widget.get("title", "Chart"))
+
+        if wtype in ("bar", "column", "histogram"):
+            x = widget.get("xField") or df.columns[0]
+            series = widget.get("series") or [c for c in df.select_dtypes(include=["number"]).columns if c != x]
+            df.plot(kind='bar', x=x, y=series, ax=plt.gca())
+        elif wtype == "line":
+            x = widget.get("xField") or df.columns[0]
+            series = widget.get("series") or [c for c in df.select_dtypes(include=["number"]).columns if c != x]
+            df.sort_values(by=x).plot(kind='line', x=x, y=series, ax=plt.gca())
+        elif wtype in ("pie", "donut"):
+            x = widget.get("xField") or df.columns[0]
+            y = widget.get("series")[0] if widget.get("series") else df.select_dtypes(include=["number"]).columns[0]
+            df.set_index(x)[y].plot(kind='pie', autopct='%1.1f%%', ax=plt.gca())
+        elif wtype == "scatter":
+            x = widget.get("xField") or df.columns[0]
+            y = widget.get("yField") or df.select_dtypes(include=["number"]).columns[0]
+            sns.scatterplot(data=df, x=x, y=y, ax=plt.gca())
+        else: # Fallback for table or unknown
+            table_df = df.head(20)
+            plt.axis('off')
+            plt.table(cellText=table_df.values, colLabels=table_df.columns, loc='center', cellLoc='left')
+
+        plt.tight_layout()
+
+        if format == 'pdf':
+            img_path = out_path.replace('.pdf', '.png')
+            plt.savefig(img_path, dpi=300)
+            pdf = FPDF()
+            pdf.add_page()
+            pdf.image(img_path, x=10, y=10, w=190)
+            pdf.output(out_path)
+            os.remove(img_path)
+        else:
+            plt.savefig(out_path, format=format, dpi=300)
+
+        plt.close()
 
     # ---------------------------
     # helpers
@@ -228,16 +283,22 @@ class VisualizationService:
             logger.exception("Failed to apply filters %s", filters)
         return df2
 
-    def process_widget_from_config(self, dashboard_id: str, widget_id: str, filters: Optional[str] = None) -> Dict[str, Any]:
+    def process_widget_from_db(self, widget_id: int, filters: Optional[str] = None) -> Dict[str, Any]:
         """
-        Convenience: load dashboard, get widget config, fetch data via DataService and process.
+        Load widget config from DB, fetch data, and process for visualization.
         """
-        dashboard = self.load_dashboard(dashboard_id)
-        if not dashboard:
-            raise FileNotFoundError(f"Dashboard {dashboard_id} not found")
-        widget = next((w for w in dashboard.get("layout", {}).get("widgets", []) if w.get("id") == widget_id), None)
-        if widget is None:
-            raise FileNotFoundError(f"Widget {widget_id} not found in {dashboard_id}")
-        # fetch data using DataService - delegate to DataService.execute_widget_query
-        df = DATA_SERVICE.execute_widget_query(widget, filters=filters)
-        return self.process_widget(widget, df)
+        widget_model = self.db.query(Widget).filter(Widget.id == widget_id).first()
+        if not widget_model:
+            raise FileNotFoundError(f"Widget {widget_id} not found in DB")
+
+        # The widget config is now a combination of multiple fields in the model
+        widget_config = {
+            "id": widget_model.id,
+            "title": widget_model.title,
+            "type": widget_model.type,
+            **widget_model.config,
+            **widget_model.layout
+        }
+
+        df = DATA_SERVICE.execute_widget_query(widget_config, filters=filters)
+        return self.process_widget(widget_config, df)
