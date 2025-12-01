@@ -66,7 +66,7 @@ services:
       - minio
 
   mlflow:
-    image: python:3.11-slim
+    image: python:3.12-slim
     environment:
       # These are needed for MLflow to talk to MinIO/S3
       AWS_ACCESS_KEY_ID: sadi_minio
