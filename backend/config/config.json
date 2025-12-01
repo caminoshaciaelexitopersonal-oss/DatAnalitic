@@ -24,12 +24,15 @@
       "deep_learning": { "weight": 1.3, "min_score": 0.80 }
     },
     "algorithms": {
-      "xgboost": { "weight": 1.3, "enabled": true },
-      "catboost": { "weight": 1.2, "enabled": true },
-      "lightgbm": { "weight": 1.3, "enabled": true },
-      "random_forest": { "weight": 1.0, "enabled": true },
-      "decision_tree": { "weight": 0.8, "enabled": true },
-      "svm": { "weight": 0.7, "enabled": true },
+      "xgboost_classifier": { "weight": 1.3, "enabled": true },
+      "catboost_classifier": { "weight": 1.2, "enabled": true },
+      "lightgbm_classifier": { "weight": 1.3, "enabled": true },
+      "random_forest_classifier": { "weight": 1.0, "enabled": true },
+      "decision_tree_classifier": { "weight": 0.8, "enabled": true },
+      "svm_classifier": { "weight": 0.7, "enabled": true },
+      "xgboost_regressor": { "weight": 1.3, "enabled": true },
+      "lightgbm_regressor": { "weight": 1.3, "enabled": true },
+      "random_forest_regressor": { "weight": 1.0, "enabled": true },
       "kmeans": { "weight": 0.6, "enabled": true },
       "dbscan": { "weight": 0.7, "enabled": true },
       "prophet": { "weight": 1.1, "enabled": true },
@@ -50,7 +53,7 @@
       "ridge_regression": { "weight": 0.9, "enabled": true },
       "lasso_regression": { "weight": 0.9, "enabled": true },
       "elasticnet_regression": { "weight": 0.9, "enabled": true },
-      "support_vector_regression": { "weight": 0.8, "enabled": true },
+      "svm_regressor": { "weight": 0.8, "enabled": true },
       "arima": { "weight": 1.0, "enabled": true },
       "sarimax": { "weight": 1.1, "enabled": true },
       "isolation_forest": { "weight": 0.9, "enabled": true },
@@ -76,9 +79,9 @@
     "stacking_rules": {
       "use_stacking": true,
       "min_base_models": 3,
-      "meta_model": "xgboost",
+      "meta_model": "xgboost_classifier",
       "rules": {
-        "classification": ["xgboost", "catboost", "lightgbm"],
+        "classification": ["xgboost_classifier", "catboost_classifier", "lightgbm_classifier"],
         "forecasting": ["prophet", "lstm", "gru"]
       }
     },

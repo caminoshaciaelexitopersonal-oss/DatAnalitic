@@ -36,8 +36,8 @@ class EtlService:
                 coerced = pd.to_numeric(numeric_candidate, errors='coerce')
 
                 if coerced.notna().sum() / max(1, series.notna().sum()) >= 0.8:
-                    if is_percent.any():
-                        coerced = coerced / 100.0
+                    # Apply percentage division only where the percent sign was present
+                    coerced.loc[is_percent] = coerced.loc[is_percent] / 100.0
                     df[col] = coerced
                     continue
 
