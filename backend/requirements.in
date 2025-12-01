@@ -6,6 +6,7 @@ pydantic==2.7.4
 pydantic-core==2.18.4
 uvicorn[standard]
 pandas
+numpy
 scikit-learn
 langchain<0.1,>=0.0.354
 langchain-openai
@@ -70,4 +71,3 @@ msal
 requests
 pyyaml
 s3fs
-tensorflow

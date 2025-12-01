@@ -22,6 +22,7 @@ import logging
 from typing import Dict, Any, Optional
 
 import pandas as pd
+from sklearn.metrics import confusion_matrix, roc_curve, auc
 
 from backend.wpa.powerbi.services.data_service import DataService
 from backend.wpa.auto_ml.automl_recommender import AutoMLRecommender
@@ -106,55 +107,79 @@ class ModelService:
     # ---------------------------
     # Explain model placeholder
     # ---------------------------
+    # ---------------------------
+    # ML Visualization Data Generators
+    # ---------------------------
+    def get_confusion_matrix(self, model_obj: Any, df_test: pd.DataFrame, target_col: str) -> Dict[str, Any]:
+        """Calculates confusion matrix."""
+        X_test = df_test.drop(columns=[target_col])
+        y_true = df_test[target_col]
+        y_pred = model_obj.predict(X_test)
+
+        cm = confusion_matrix(y_true, y_pred)
+        labels = model_obj.classes_ if hasattr(model_obj, 'classes_') else ['0', '1']
+
+        return {"matrix": cm.tolist(), "labels": [str(l) for l in labels]}
+
+    def get_roc_curve(self, model_obj: Any, df_test: pd.DataFrame, target_col: str) -> Dict[str, Any]:
+        """Calculates ROC curve data."""
+        if not hasattr(model_obj, "predict_proba"):
+            return {"error": "Model does not support predict_proba, cannot generate ROC curve."}
+
+        X_test = df_test.drop(columns=[target_col])
+        y_true = df_test[target_col]
+        y_scores = model_obj.predict_proba(X_test)[:, 1]
+
+        fpr, tpr, _ = roc_curve(y_true, y_scores)
+        roc_auc = auc(fpr, tpr)
+
+        return {
+            "points": [{"fpr": f, "tpr": t} for f, t in zip(fpr, tpr)],
+            "auc": roc_auc
+        }
+
     def explain_model(self, model_obj_or_run_id: Any, df_sample: Optional[pd.DataFrame] = None) -> Dict[str, Any]:
         """
-        Lightweight wrapper to produce an explainability summary.
-        If model_obj_or_run_id is an MLflow run_id, try to fetch the model artifact and run SHAP (if available).
-        If it's a model object with sklearn API, run permutation importance or SHAP if installed.
-        Returns a dict with pointers to artifacts or small numeric summaries.
+        Produces an explainability summary, focusing on permutation importance.
         """
         try:
-            # If it's a run id and mlflow is enabled, attempt to load model
+            model = None
             if self._mlflow_enabled and isinstance(model_obj_or_run_id, str) and self._mlflow:
                 try:
                     model_uri = f"runs:/{model_obj_or_run_id}/model"
                     model = self._mlflow.pyfunc.load_model(model_uri)
-                    # we can try shap if installed
-                    try:
-                        import shap
-                        if df_sample is None:
-                            # try to load sample - fallback empty
-                            df_sample = pd.DataFrame()
-                        expl = shap.Explainer(model.predict, df_sample) if hasattr(shap, "Explainer") else None
-                        if expl:
-                            shap_vals = expl(df_sample)
-                            return {"shap_summary": True, "note": "SHAP computed (mlflow model)"}
-                    except Exception:
-                        # fallback permutation importance
-                        return {"explained": False, "note": "shap not available"}
                 except Exception as e:
-                    logger.warning("Failed load model from mlflow: %s", e)
-                    return {"explained": False, "error": str(e)}
-
-            # If it's a model object (sklearn like)
-            if hasattr(model_obj_or_run_id, "predict"):
+                    logger.warning("Failed to load model from mlflow: %s", e)
+                    return {"error": str(e)}
+            elif hasattr(model_obj_or_run_id, "predict"):
                 model = model_obj_or_run_id
-                if df_sample is None:
-                    return {"explained": False, "note": "no sample provided"}
-                # try permutation importance
-                try:
-                    from sklearn.inspection import permutation_importance
-                    X = df_sample.drop(columns=[c for c in df_sample.columns if c not in getattr(model, "feature_names_in_", df_sample.columns)])
-                    y = None
-                    res = permutation_importance(model, X, model.predict(X), n_repeats=10, random_state=42)
-                    imp = dict(zip(X.columns, res.importances_mean.tolist()))
-                    return {"permutation_importance": imp}
-                except Exception as e:
-                    logger.exception("Permutation importance failed: %s", e)
-                    return {"explained": False, "error": str(e)}
 
-            return {"explained": False, "note": "unsupported model identifier"}
+            if model is None:
+                return {"error": "Unsupported model identifier"}
+
+            if df_sample is None:
+                return {"error": "Sample dataframe not provided for explanation"}
+
+            # Permutation Importance is more universally applicable than SHAP
+            try:
+                from sklearn.inspection import permutation_importance
+
+                # Align columns with model's expected features
+                model_features = getattr(model, "feature_names_in_", df_sample.columns.drop(df_sample.columns[-1])) # Heuristic
+                X = df_sample[model_features]
+                y = df_sample.iloc[:, -1] # Heuristic for target column
+
+                res = permutation_importance(model, X, y, n_repeats=10, random_state=42)
+
+                importances = [{"feature": f, "importance": float(i)} for f, i in zip(X.columns, res.importances_mean)]
+                importances.sort(key=lambda x: x["importance"], reverse=True)
+
+                return {"permutation_importance": importances}
+
+            except Exception as e:
+                logger.exception("Permutation importance failed: %s", e)
+                return {"error": str(e)}
 
         except Exception as e:
             logger.exception("explain_model failed: %s", e)
-            return {"explained": False, "error": str(e)}
+            return {"error": str(e)}
