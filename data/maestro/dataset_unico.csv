@@ -1,0 +1,16 @@
+columna1,columna2,user.id,user.name,order.order_id,order.items,header1,header2,id,product,price,ID_Cliente,Nombre Completo,Fecha_Registro,Monto_Compra,ID,Nombre,Email,ColA,ColB,ColC,ColD,header_A;header_B
+acci\xf3n,valor,,,,,,,,,,,,,,,,,,,,,
+,,101.0,Alice,ORD001,"[{""item_id"": ""A1"", ""qty"": 2}]",,,,,,,,,,,,,,,,,
+,,,,,,value1,value2,,,,,,,,,,,,,,,
+,,,,,,,,1.0,Laptop,1200.0,,,,,,,,,,,,
+,,,,,,,,2.0,Mouse,25.0,,,,,,,,,,,,
+,,,,,,,,,,,1.0,Juan Pérez,2023-01-15,150.5,,,,,,,,
+,,,,,,,,,,,2.0,Ana Gómez,2023-02-20,200.0,,,,,,,,
+,,,,,,,,,,,3.0,Luis Rodríguez,2023-03-10,75.25,,,,,,,,
+,,,,,,,,,,,,,,,1.0,Carlos,c@a.com,,,,,
+,,,,,,,,,,,,,,,2.0,Maria,m@a.com,,,,,
+,,,,,,,,,,,,,,,,,,1.0,X,,,
+,,,,,,,,,,,,,,,,,,2.0,Y,,,
+,,,,,,,,,,,,,,,,,,,,3.0,Z,
+,,,,,,,,,,,,,,,,,,,,4.0,W,
+,,,,,,,,,,,,,,,,,,,,,,val_A;val_B

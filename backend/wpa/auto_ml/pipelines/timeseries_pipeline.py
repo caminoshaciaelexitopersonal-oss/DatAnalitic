@@ -1,0 +1,1 @@
+def run_timeseries_pipeline(df, ts_col):\n    raise NotImplementedError\n

@@ -1,0 +1,179 @@
+x-env-common: &env-common
+  PYTHONPATH: /app
+  MLFLOW_TRACKING_URI: http://mlflow:5000
+  DATABASE_URL: postgresql://sadi_user:sadi_password@postgres:5432/sadi_db
+  MINIO_URL: http://minio:9000
+  MINIO_ACCESS_KEY: sadi_minio
+  MINIO_SECRET_KEY: sadi_minio_secret
+  GOOGLE_API_KEY: ${GOOGLE_API_KEY}
+  SECRET_KEY: ${SECRET_KEY}
+  DEFAULT_ADMIN_PASSWORD: ${DEFAULT_ADMIN_PASSWORD}
+
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    pull_policy: always
+    secrets:
+      - dockerhub_auth
+    ports:
+      - "8000:8000"
+    environment:
+      <<: *env-common
+    depends_on:
+      - redis
+      - mlflow
+      - postgres
+      - minio
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    pull_policy: always
+    secrets:
+      - dockerhub_auth
+    ports:
+      - "8080:3000"
+    depends_on:
+      - backend
+
+  redis:
+    image: "redis:alpine"
+    ports:
+      - "6379:6379"
+
+  worker:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    pull_policy: always
+    secrets:
+      - dockerhub_auth
+    command: celery -A backend.celery_worker.celery_app worker --loglevel=info
+    environment:
+      <<: *env-common
+    depends_on:
+      - redis
+      - mlflow
+      - postgres
+      - minio
+
+  mlflow:
+    image: python:3.11-slim
+    environment:
+      # These are needed for MLflow to talk to MinIO/S3
+      AWS_ACCESS_KEY_ID: sadi_minio
+      AWS_SECRET_ACCESS_KEY: sadi_minio_secret
+      MLFLOW_S3_ENDPOINT_URL: http://minio:9000
+    command: >
+      sh -c "pip install mlflow psycopg2-binary boto3 &&
+             mlflow server --host 0.0.0.0 --port 5000
+             --backend-store-uri postgresql://sadi_user:sadi_password@postgres:5432/sadi_db
+             --default-artifact-root s3://mlflow"
+    ports:
+      - "5000:5000"
+    volumes:
+      - mlflow_data:/data
+
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      - POSTGRES_DB=sadi_db
+      - POSTGRES_USER=sadi_user
+      - POSTGRES_PASSWORD=sadi_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  pgadmin:
+    image: dpage/pgadmin4
+    environment:
+      - PGADMIN_DEFAULT_EMAIL=admin@sadi.com
+      - PGADMIN_DEFAULT_PASSWORD=admin
+    ports:
+      - "5050:80"
+    depends_on:
+      - postgres
+
+  minio:
+    image: minio/minio
+    environment:
+      - MINIO_ROOT_USER=sadi_minio
+      - MINIO_ROOT_PASSWORD=sadi_minio_secret
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio_data:/data
+    command: server /data --console-address ":9001"
+
+  prometheus:
+    image: prom/prometheus
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    ports:
+      - "9090:9090"
+    depends_on:
+      - backend
+
+  grafana:
+    image: grafana/grafana
+    volumes:
+      - grafana_data:/var/lib/grafana
+    ports:
+      - "3001:3000"
+    depends_on:
+      - prometheus
+
+  tester:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    pull_policy: always
+    secrets:
+      - dockerhub_auth
+    working_dir: /app
+ 
+    volumes:
+      - .:/app
+    environment:
+      PYTHONPATH: /app:/app/backend
+      MLFLOW_TRACKING_URI: http://mlflow:5000
+      DATABASE_URL: postgresql://sadi_user:sadi_password@postgres:5432/sadi_db
+      MINIO_URL: http://minio:9000
+      MINIO_ACCESS_KEY: sadi_minio
+      MINIO_SECRET_KEY: sadi_minio_secret
+      GOOGLE_API_KEY: ${GOOGLE_API_KEY}
+      SECRET_KEY: test_secret_key
+      DEFAULT_ADMIN_PASSWORD: ${DEFAULT_ADMIN_PASSWORD}
+    command: ["python", "-m", "pytest", "backend"]
+ 
+    depends_on:
+      - redis
+      - mlflow
+      - postgres
+      - minio
+
+networks:
+  default:
+    driver: bridge
+
+volumes:
+  prometheus_data: {}
+  grafana_data: {}
+  mlflow_data: {}
+  postgres_data: {}
+  minio_data: {}
+
+secrets:
+  dockerhub_auth:
+    file: ~/.docker/config.json

@@ -1,0 +1,14 @@
+artifact_uri: file:///app/mlruns/244761813163948844/a922bf691cf64d3b8a2f418c1d84c08b/artifacts
+end_time: 1764357583015
+entry_point_name: ''
+experiment_id: '244761813163948844'
+lifecycle_stage: active
+run_id: a922bf691cf64d3b8a2f418c1d84c08b
+run_name: automl_job_test_job_123
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1764357582959
+status: 4
+tags: []
+user_id: jules

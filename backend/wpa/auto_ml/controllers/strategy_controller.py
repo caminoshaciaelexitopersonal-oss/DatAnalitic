@@ -1,0 +1,1 @@
+def get_strategy(job_id):\n    return {}\n

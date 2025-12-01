@@ -1,0 +1,14 @@
+artifact_uri: file:///app/mlruns/0/3f74b4173cb24054bb58bef8a0d87ce2/artifacts
+end_time: 1764367910934
+entry_point_name: ''
+experiment_id: '0'
+lifecycle_stage: active
+run_id: 3f74b4173cb24054bb58bef8a0d87ce2
+run_name: capable-whale-251
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1764367903758
+status: 3
+tags: []
+user_id: jules

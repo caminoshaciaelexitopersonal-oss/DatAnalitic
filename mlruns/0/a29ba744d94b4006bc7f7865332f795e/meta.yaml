@@ -1,0 +1,14 @@
+artifact_uri: file:///app/mlruns/0/a29ba744d94b4006bc7f7865332f795e/artifacts
+end_time: 1764367906487
+entry_point_name: ''
+experiment_id: '0'
+lifecycle_stage: active
+run_id: a29ba744d94b4006bc7f7865332f795e
+run_name: selective-ant-393
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1764367903777
+status: 3
+tags: []
+user_id: jules

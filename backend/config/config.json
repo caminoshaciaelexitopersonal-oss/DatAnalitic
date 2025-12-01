@@ -1,0 +1,97 @@
+{
+  "version": "1.0.0",
+  "ml_engine": {
+    "global": {
+      "objective": "target_detection",
+      "confidence_threshold": 0.80,
+      "min_dataset_size": 150,
+      "evaluation_metric": "f1_score",
+      "max_runtime_seconds": 900
+    },
+    "preprocessing": {
+      "missing_values": "median",
+      "scaling": "standard",
+      "feature_selection": {
+        "method": "mutual_info",
+        "top_k": 20
+      }
+    },
+    "algorithm_families": {
+      "regression": { "weight": 0.9, "min_score": 0.70 },
+      "classification": { "weight": 1.1, "min_score": 0.76 },
+      "clustering": { "weight": 0.6, "min_score": 0.65 },
+      "timeseries": { "weight": 1.0, "min_score": 0.70 },
+      "deep_learning": { "weight": 1.3, "min_score": 0.80 }
+    },
+    "algorithms": {
+      "xgboost": { "weight": 1.3, "enabled": true },
+      "catboost": { "weight": 1.2, "enabled": true },
+      "lightgbm": { "weight": 1.3, "enabled": true },
+      "random_forest": { "weight": 1.0, "enabled": true },
+      "decision_tree": { "weight": 0.8, "enabled": true },
+      "svm": { "weight": 0.7, "enabled": true },
+      "kmeans": { "weight": 0.6, "enabled": true },
+      "dbscan": { "weight": 0.7, "enabled": true },
+      "prophet": { "weight": 1.1, "enabled": true },
+      "lstm": { "weight": 1.4, "enabled": true },
+      "gru": { "weight": 1.4, "enabled": true },
+      "transformer": { "weight": 1.5, "enabled": true },
+      "dense_neural_network": { "weight": 1.2, "enabled": true },
+      "convolutional_neural_network": { "weight": 1.3, "enabled": true },
+      "autoencoder": { "weight": 1.1, "enabled": true },
+      "recurrent_neural_network": { "weight": 1.3, "enabled": true },
+      "bidirectional_lstm": { "weight": 1.4, "enabled": true },
+      "logistic_regression": { "weight": 0.9, "enabled": true },
+      "k_nearest_neighbors": { "weight": 0.8, "enabled": true },
+      "naive_bayes": { "weight": 0.7, "enabled": true },
+      "adaboost": { "weight": 1.0, "enabled": true },
+      "gradient_boosting_classifier": { "weight": 1.1, "enabled": true },
+      "linear_regression": { "weight": 0.9, "enabled": true },
+      "ridge_regression": { "weight": 0.9, "enabled": true },
+      "lasso_regression": { "weight": 0.9, "enabled": true },
+      "elasticnet_regression": { "weight": 0.9, "enabled": true },
+      "support_vector_regression": { "weight": 0.8, "enabled": true },
+      "arima": { "weight": 1.0, "enabled": true },
+      "sarimax": { "weight": 1.1, "enabled": true },
+      "isolation_forest": { "weight": 0.9, "enabled": true },
+      "gaussian_mixture_models": { "weight": 0.8, "enabled": true },
+      "principal_component_analysis": { "weight": 0.7, "enabled": true },
+      "t_sne": { "weight": 0.7, "enabled": true },
+      "linear_discriminant_analysis": { "weight": 0.8, "enabled": true },
+      "agglomerative_clustering": { "weight": 0.7, "enabled": true },
+      "birch": { "weight": 0.7, "enabled": true },
+      "optics": { "weight": 0.7, "enabled": true },
+      "meanshift": { "weight": 0.8, "enabled": true },
+      "spectral_clustering": { "weight": 0.8, "enabled": true },
+      "affinity_propagation": { "weight": 0.8, "enabled": true },
+      "bayesian_ridge": { "weight": 0.9, "enabled": true },
+      "vector_autoregression": { "weight": 1.0, "enabled": true },
+      "theta_forecaster": { "weight": 1.0, "enabled": true },
+      "als_factorization": { "weight": 0.9, "enabled": true },
+      "passive_aggressive_classifier": { "weight": 0.8, "enabled": true },
+      "sgd_classifier": { "weight": 0.8, "enabled": true },
+      "perceptron": { "weight": 0.7, "enabled": true },
+      "huber_regressor": { "weight": 0.9, "enabled": true }
+    },
+    "stacking_rules": {
+      "use_stacking": true,
+      "min_base_models": 3,
+      "meta_model": "xgboost",
+      "rules": {
+        "classification": ["xgboost", "catboost", "lightgbm"],
+        "forecasting": ["prophet", "lstm", "gru"]
+      }
+    },
+    "trigger_rules": {
+      "low_score_retraining_threshold": 0.74,
+      "confidence_warning_threshold": 0.65,
+      "max_drift_percentage": 0.15
+    }
+  },
+  "logging": {
+    "save_best_model": true,
+    "experiment_tracking": "local",
+    "log_level": "INFO",
+    "max_saved_models": 8
+  }
+}

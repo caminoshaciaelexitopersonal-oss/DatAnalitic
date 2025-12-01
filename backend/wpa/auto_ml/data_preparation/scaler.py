@@ -1,0 +1,1 @@
+def scale(df):\n    """Scale numeric features"""\n    return df\n

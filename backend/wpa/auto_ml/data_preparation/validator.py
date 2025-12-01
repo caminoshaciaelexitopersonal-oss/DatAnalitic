@@ -1,0 +1,1 @@
+def validate(df):\n    """Return list of validation errors or empty list"""\n    return []\n

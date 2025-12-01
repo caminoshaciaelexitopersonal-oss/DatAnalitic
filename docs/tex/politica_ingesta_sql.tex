@@ -1,0 +1,37 @@
+\documentclass{article}
+\usepackage{geometry}
+\geometry{a4paper, margin=1in}
+\usepackage{hyperref}
+
+\title{Política de Ingesta de Archivos SQL}
+\author{Jules}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\section*{Metadatos del Documento}
+\begin{itemize}
+    \item \textbf{Fecha:} \today
+    \item \textbf{Responsable:} Jules
+    \item \textbf{Módulo Asociado:} \texttt{backend/mpa/etl/service.py}
+    \item \textbf{Propósito:} Definir las reglas de negocio y el comportamiento esperado del \texttt{EtlService} al procesar archivos con extensión \texttt{.sql}.
+    \item \textbf{Impacto en el Sistema:} Define el comportamiento funcional de una parte del pipeline ETL.
+\end{itemize}
+
+\section{Reglas de Procesamiento}
+
+\begin{enumerate}
+    \item \textbf{Sentencias Permitidas:} El servicio solo procesará archivos \texttt{.sql} que contengan sentencias \texttt{SELECT}. Cualquier otra sentencia (e.g., \texttt{INSERT}, \texttt{UPDATE}, \texttt{CREATE}) será ejecutada pero no devolverá un DataFrame.
+
+    \item \textbf{Manejo de Múltiples Sentencias:} Si un archivo contiene múltiples sentencias, se ejecutarán en orden. Sin embargo, solo el resultado de la \textbf{última sentencia \texttt{SELECT}} será retornado como un DataFrame.
+
+    \item \textbf{Manejo de Errores:} Si el archivo contiene SQL inválido que produce un error durante la ejecución, el servicio capturará la excepción, registrará un error y retornará un DataFrame vacío o \texttt{None}. No detendrá el pipeline completo.
+
+    \item \textbf{Resultados Vacíos:} Si una consulta \texttt{SELECT} se ejecuta correctamente pero no devuelve filas, el servicio retornará un DataFrame vacío con las columnas correspondientes.
+
+    \item \textbf{Límites de Filas:} No se aplicará un límite estricto de filas a nivel de la ingesta de SQL, pero el rendimiento dependerá de la capacidad del motor de base de datos subyacente (SQLite en el caso de las pruebas).
+\end{enumerate}
+
+\end{document}

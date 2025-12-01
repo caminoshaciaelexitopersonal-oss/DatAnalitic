@@ -1,0 +1,30 @@
+id: marketing_funnel
+title: "Marketing – Embudo y Conversión"
+category: marketing
+layout:
+  grid:
+    columns: 12
+  widgets:
+    - id: leads_mes
+      type: line
+      title: "Leads por Mes"
+      dataset: marketing_leads.csv
+      xField: fecha
+      yField: leads
+      width: 12
+      height: 3
+    - id: conversion_funnel
+      type: bar
+      title: "Embudo de Conversión"
+      dataset: marketing_funnel.csv
+      xField: etapa
+      yField: cantidad
+      width: 6
+      height: 3
+    - id: costo_por_canal
+      type: pie
+      title: "Costos por Canal"
+      dataset: marketing_costos.csv
+      xField: canal
+      width: 6
+      height: 3

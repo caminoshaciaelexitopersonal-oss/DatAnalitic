@@ -1,0 +1,54 @@
+id: ventas_general
+title: "Dashboard de Ventas – General"
+category: ventas
+description: "Vista ejecutiva de ventas, top productos, regiones y KPIs clave."
+global_filters:
+  año: [2023, 2024]
+layout:
+  grid:
+    columns: 12
+    row_height: 90
+  widgets:
+    - id: kpi_total_ventas
+      type: kpi
+      title: "Total Ventas"
+      dataset: ventas.csv
+      yField: valor
+      agg_func: sum
+      width: 3
+      height: 2
+      row: 1
+      col: 1
+    - id: ventas_por_region
+      type: bar
+      title: "Ventas por Región"
+      dataset: ventas.csv
+      xField: region
+      yField: valor
+      agg:
+        valor: sum
+      group_by: [region]
+      width: 6
+      height: 3
+      row: 1
+      col: 4
+    - id: top_productos
+      type: table
+      title: "Top Productos"
+      dataset: ventas.csv
+      filters:
+        activo: true
+      width: 12
+      height: 4
+      row: 4
+      col: 1
+    - id: serie_temporal
+      type: line
+      title: "Serie Temporal de Ventas"
+      dataset: ventas.csv
+      xField: fecha
+      yField: valor
+      width: 12
+      height: 4
+      row: 8
+      col: 1

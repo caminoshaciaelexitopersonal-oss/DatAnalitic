@@ -1,0 +1,14 @@
+artifact_uri: file:///app/mlruns/244761813163948844/d29c8f87627140ca9115d93f33bd8e25/artifacts
+end_time: 1764366508021
+entry_point_name: ''
+experiment_id: '244761813163948844'
+lifecycle_stage: active
+run_id: d29c8f87627140ca9115d93f33bd8e25
+run_name: grandiose-sponge-162
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1764366503690
+status: 3
+tags: []
+user_id: jules
