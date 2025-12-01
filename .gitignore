@@ -40,3 +40,4 @@ Thumbs.db
 *.db
 *.sqlite
 *.sqlite3
+\n# Catboost artifact files\ncatboost_info/

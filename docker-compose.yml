@@ -155,8 +155,10 @@ services:
       GOOGLE_API_KEY: ${GOOGLE_API_KEY}
       SECRET_KEY: test_secret_key
       DEFAULT_ADMIN_PASSWORD: ${DEFAULT_ADMIN_PASSWORD}
+    # Run tests as root to allow pytest to write to the .pytest_cache directory,
+    # which is mounted as a volume from the host.
+    user: root
     command: ["python", "-m", "pytest", "backend"]
- 
     depends_on:
       - redis
       - mlflow

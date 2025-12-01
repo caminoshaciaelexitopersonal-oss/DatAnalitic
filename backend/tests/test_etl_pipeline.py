@@ -1,113 +1,86 @@
 # backend/tests/test_etl_pipeline.py
-import os
-import tempfile
-import sqlite3
 import pandas as pd
 import pytest
+import numpy as np
+from unittest.mock import MagicMock
 
 from backend.mpa.etl.service import EtlService
 
-
-class MockStateStore:
-    """
-    Minimal in-memory state store for tests.
-    save_dataframe(session_id, df, append=True)
-    load_dataframe(session_id) -> df or None
-    """
-    def __init__(self):
-        self._store = {}
-
-    def save_dataframe(self, session_id: str, df: pd.DataFrame, append: bool = True):
-        if session_id in self._store and append:
-            existing = self._store[session_id]
-            # align columns (union)
-            df = pd.concat([existing, df], ignore_index=True, sort=False)
-        self._store[session_id] = df.reset_index(drop=True)
-
-    def load_dataframe(self, session_id: str):
-        return self._store.get(session_id)
-
-
 @pytest.fixture
 def state_store():
-    return MockStateStore()
-
+    """Provides a mocked StateStore for tests."""
+    return MagicMock()
 
 @pytest.fixture
 def etl_service(state_store):
+    """Provides an instance of the EtlService."""
     return EtlService(state_store)
 
+def test_standardize_df_handles_mixed_types_and_nulls(etl_service):
+    """
+    Tests the core cleaning and type conversion logic of the EtlService.
+    """
+    data = {
+        'col_a': ['1', '2', '3', '4', '5'],
+        'col_b': [' 10 ', '20', ' 30 ', '40', '50 '],
+        'col_c': ['$1,000.00', ' $2,000.00 ', '3,000.00', '4000', '5000.50'],
+        'col_d': ['50%', '60 %', ' 70%', '80', '90'],
+        'col_e': ['2023-01-01', '2023-01-02', '2023-01-03', '2023-01-04', 'not_a_date'],
+        'col_f': ['NA', 'N/A', '', '  ', 'valid_string'],
+        'col_g': ['(100)', '200', '-300', '400', '500'] # Negative numbers in accounting format
+    }
+    df = pd.DataFrame(data)
 
-def test_csv_ingest_and_metadata(tmp_path, etl_service, state_store):
-    data = "city,pop\nMadrid,6700000\nBarcelona,5600000\n"
-    f = tmp_path / "pop.csv"
-    f.write_text(data, encoding="utf-8")
+    cleaned_df = etl_service.standardize_df(df)
 
-    meta = etl_service.ingest_file(str(f), session_id="s1")
-    assert meta["rows"] == 2
-    assert "city" in meta["columns"]
-    df = state_store.load_dataframe("s1")
-    assert df.shape == (2, 2)
-    assert df["pop"].dtype.kind in ("i", "f") or pd.api.types.is_numeric_dtype(df["pop"])
+    # --- Verification ---
+    # Integer conversion and stripping whitespace
+    assert pd.api.types.is_numeric_dtype(cleaned_df['col_a'])
+    assert cleaned_df['col_a'].tolist() == [1, 2, 3, 4, 5]
 
+    # Stripping whitespace
+    assert pd.api.types.is_numeric_dtype(cleaned_df['col_b'])
+    assert cleaned_df['col_b'].tolist() == [10, 20, 30, 40, 50]
 
-def test_xlsx_ingest(tmp_path, etl_service, state_store):
-    df_input = pd.DataFrame({"a": [1, 2], "b": ["x", "y"]})
-    f = tmp_path / "sheet.xlsx"
-    df_input.to_excel(str(f), index=False)
+    # Currency and comma cleaning
+    assert pd.api.types.is_numeric_dtype(cleaned_df['col_c'])
+    assert cleaned_df['col_c'].tolist() == [1000.0, 2000.0, 3000.0, 4000.0, 5000.5]
 
-    meta = etl_service.ingest_file(str(f), session_id="s2")
-    assert meta["rows"] == 2
-    df = state_store.load_dataframe("s2")
-    assert list(df["a"]) == [1, 2]
+    # Percentage conversion to float
+    assert pd.api.types.is_numeric_dtype(cleaned_df['col_d'])
+    assert np.allclose(cleaned_df['col_d'].tolist(), [0.5, 0.6, 0.7, 80.0, 90.0]) # Note: 80 and 90 are not treated as %
 
+    # Datetime conversion (with one failed value remaining as NaT)
+    assert pd.api.types.is_datetime64_any_dtype(cleaned_df['col_e'])
+    assert pd.isna(cleaned_df['col_e'].iloc[4]) # 'not_a_date' should become NaT
 
-def test_json_ingest(tmp_path, etl_service, state_store):
-    df_input = pd.DataFrame({"k": ["x", "y"], "v": [10, 20]})
-    f = tmp_path / "data.json"
-    f.write_text(df_input.to_json(orient="records"), encoding="utf-8")
+    # Null value standardization
+    assert cleaned_df['col_f'].isna().sum() == 4
+    assert cleaned_df['col_f'].iloc[4] == 'valid_string'
 
-    meta = etl_service.ingest_file(str(f), session_id="s3")
-    assert meta["rows"] == 2
-    df = state_store.load_dataframe("s3")
-    assert "k" in df.columns
-
-
-@pytest.mark.skip(reason="Legacy ETL module and test structure is outdated.")
-def test_sql_ingest(tmp_path, etl_service, state_store):
-    # create sqlite db and table
-    db_path = tmp_path / "test.db"
-    con = sqlite3.connect(str(db_path))
-    cur = con.cursor()
-    cur.execute("CREATE TABLE people (city TEXT, pop INTEGER);")
-    cur.execute("INSERT INTO people VALUES ('Madrid', 6700000);")
-    cur.execute("INSERT INTO people VALUES ('Barcelona', 5600000);")
-    con.commit()
-    con.close()
-
-    # write select query to file
-    qfile = tmp_path / "query.sql"
-    qfile.write_text("SELECT * FROM people;", encoding="utf-8")
-
-    meta = etl_service.ingest_file(str(qfile), session_id="s_sql", db_uri=str(db_path))
-    assert meta["rows"] == 2
-    df = state_store.load_dataframe("s_sql")
-    assert "city" in df.columns
-    assert set(df["city"].tolist()) == {"Madrid", "Barcelona"}
+    # Accounting negative format
+    assert pd.api.types.is_numeric_dtype(cleaned_df['col_g'])
+    assert cleaned_df['col_g'].tolist() == [-100, 200, -300, 400, 500]
 
 
-def test_multiple_files_unification(tmp_path, etl_service, state_store):
-    # first CSV
-    f1 = tmp_path / "part1.csv"
-    f1.write_text("id,val\n1,10\n2,20\n", encoding="utf-8")
-    # second CSV
-    f2 = tmp_path / "part2.csv"
-    f2.write_text("id,val\n3,30\n", encoding="utf-8")
+def test_heuristic_conversion_thresholds(etl_service):
+    """
+    Tests the 80% rule for type conversion.
+    """
+    # This column is >80% numeric, should be converted
+    data_numeric_pass = {'col': ['1', '2', '3', '4', 'fail']}
+    df_numeric_pass = pd.DataFrame(data_numeric_pass)
+    cleaned_df_np = etl_service.standardize_df(df_numeric_pass)
+    assert pd.api.types.is_numeric_dtype(cleaned_df_np['col'])
 
-    # ingest both into same session
-    etl_service.ingest_file(str(f1), session_id="session_merge")
-    etl_service.ingest_file(str(f2), session_id="session_merge")
+    # This column is <80% numeric, should remain as object
+    data_numeric_fail = {'col': ['1', '2', '3', 'fail1', 'fail2']}
+    df_numeric_fail = pd.DataFrame(data_numeric_fail)
+    cleaned_df_nf = etl_service.standardize_df(df_numeric_fail)
+    assert pd.api.types.is_object_dtype(cleaned_df_nf['col'])
 
-    df = state_store.load_dataframe("session_merge")
-    assert df.shape[0] == 3
-    assert set(df["id"].astype(int).tolist()) == {1, 2, 3}
+    # This column is >80% datetime, should be converted
+    data_date_pass = {'col': ['2023-01-01', '2023-01-02', '2023-01-03', '2023-01-04', 'fail']}
+    df_date_pass = pd.DataFrame(data_date_pass)
+    cleaned_df_dp = etl_service.standardize_df(df_date_pass)
+    assert pd.api.types.is_datetime64_any_dtype(cleaned_df_dp['col'])

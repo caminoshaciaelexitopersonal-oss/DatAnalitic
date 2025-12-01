@@ -70,3 +70,4 @@ msal
 requests
 pyyaml
 s3fs
+tensorflow
