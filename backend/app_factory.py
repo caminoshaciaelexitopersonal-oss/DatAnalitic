@@ -18,6 +18,7 @@ from backend.wpa.auto_ml.api import router as auto_ml_router
 from backend.wpa.intelligent_router.api import router as intelligent_router
 from backend.wpa.powerbi.routers.powerbi_router import router as powerbi_router
 from backend.mpa.dtl.api import router as dtl_router
+from backend.mpa.delivery.router import router as delivery_router
 from backend.core.auth.api import router as auth_router
 
 def create_app():
@@ -45,6 +46,7 @@ def create_app():
     unified_router.include_router(ethics_router, prefix="/mpa/ethics")
     unified_router.include_router(compliance_router, prefix="/mpa/compliance")
     unified_router.include_router(dtl_router, prefix="/mpa/dtl")
+    unified_router.include_router(delivery_router) # The prefix is already in the router
     unified_router.include_router(ai_proxy_router, prefix="/mpa/ai_proxy")
     unified_router.include_router(auto_analysis_api, prefix="/wpa/auto-analysis")
     unified_router.include_router(auto_ml_router, prefix="/wpa/auto-ml", tags=["WPA - AutoML"])
