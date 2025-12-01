@@ -6,8 +6,12 @@ from sklearn.compose import ColumnTransformer
 from sklearn.pipeline import Pipeline
 from sklearn.impute import SimpleImputer
 from sklearn.preprocessing import StandardScaler, OneHotEncoder
-from sklearn.metrics import f1_score, r2_score
+from sklearn.metrics import (
+    f1_score, r2_score, accuracy_score, precision_score, recall_score, roc_auc_score,
+    mean_absolute_error, mean_squared_error
+)
 import mlflow
+import numpy as np
 
 from backend.wpa.auto_ml.model_mapping import MODEL_MAP
 
@@ -120,17 +124,41 @@ class AutoMlService:
                     if problem_type in ["classification", "regression"]:
                         y_pred = model_pipeline.predict(X_test)
 
+                        metrics = {}
                         score = 0
-                        if problem_type == "classification":
-                            # Use weighted F1 score for classification to handle imbalance
-                            score = f1_score(y_test, y_pred, average='weighted')
-                            mlflow.log_metric("f1_score_weighted", score)
-                        else: # regression
-                            score = r2_score(y_test, y_pred)
-                            mlflow.log_metric("r2_score", score)
 
+                        if problem_type == "classification":
+                            # Handling binary vs multiclass for metrics like roc_auc
+                            is_multiclass = len(np.unique(y_train)) > 2
+                            average_method = 'weighted' if is_multiclass else 'binary'
+
+                            metrics = {
+                                "accuracy": accuracy_score(y_test, y_pred),
+                                "f1_score": f1_score(y_test, y_pred, average=average_method),
+                                "precision": precision_score(y_test, y_pred, average=average_method, zero_division=0),
+                                "recall": recall_score(y_test, y_pred, average=average_method, zero_division=0),
+                            }
+                            # roc_auc_score requires predict_proba for multiclass
+                            if hasattr(model_pipeline, "predict_proba"):
+                                y_proba = model_pipeline.predict_proba(X_test)
+                                if is_multiclass:
+                                    metrics["roc_auc"] = roc_auc_score(y_test, y_proba, multi_class='ovr')
+                                else:
+                                    metrics["roc_auc"] = roc_auc_score(y_test, y_proba[:, 1])
+
+                            score = metrics["f1_score"] # Use F1 as the primary score for ranking
+
+                        else: # regression
+                            metrics = {
+                                "r2_score": r2_score(y_test, y_pred),
+                                "rmse": np.sqrt(mean_squared_error(y_test, y_pred)),
+                                "mae": mean_absolute_error(y_test, y_pred),
+                            }
+                            score = metrics["r2_score"] # Use R2 as the primary score for ranking
+
+                        mlflow.log_metrics(metrics)
                         print(f"[{job_id}] ... {model_name} score: {score:.4f}")
-                        results.append({"model": model_name, "score": score})
+                        results.append({"model": model_name, "score": score, "metrics": metrics})
 
                         if score > best_score:
                             best_score = score
@@ -148,12 +176,15 @@ class AutoMlService:
                     print(f"[{job_id}] Failed to train {model_name}. Error: {e}")
                     mlflow.log_param("error", str(e))
 
-        results.sort(key=lambda x: x['score'], reverse=True)
+        results.sort(key=lambda x: x.get('score', -1), reverse=True)
+        best_result = results[0] if results else {}
 
         automl_artifacts = {
             "summary": {
-                "best_model_name": results[0]['model'] if results else "None",
-                "best_model_score": results[0]['score'] if results else -1,
+                "problem_type": problem_type,
+                "best_model_name": best_result.get('model', "None"),
+                "best_model_score": best_result.get('score', -1),
+                "best_model_metrics": best_result.get('metrics', {}),
                 "ranking": results,
             },
             "best_model": best_model_pipeline,

@@ -1,5 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
-from fastapi.responses import FileResponse
+from fastapi import APIRouter, Depends, HTTPException, Response
 from pydantic import BaseModel
 import uuid
 import mlflow
@@ -8,6 +7,7 @@ from typing import Dict, Any
 import json
 from backend.celery_worker import celery_app
 from backend.core.state_store import StateStore, get_state_store
+from backend.wpa.auto_analysis.report_service import ReportService
 from backend.core.security import User, require_role
 from backend.schemas import Role
 from backend.core.config import config
@@ -35,27 +35,41 @@ def get_job_status(job_id: str, state_store: StateStore = Depends(get_state_stor
 
 
 @router.get("/{job_id}/report/{format}", operation_id="downloadReport")
-def download_report(job_id: str, format: str):
+def download_report(job_id: str, format: str, state_store: StateStore = Depends(get_state_store)):
     """
-    Downloads the specified report (docx, xlsx, or pdf) for a completed job.
-    It reads the manifest to find the correct report path.
+    Generates and downloads the specified report for a completed job.
+    Currently, only PDF format is supported.
     """
-    if format not in ["docx", "xlsx", "pdf"]:
-        raise HTTPException(status_code=400, detail="Format must be one of docx, xlsx, or pdf.")
+    if format != "pdf":
+        raise HTTPException(status_code=400, detail="Format must be pdf.")
 
-    # This endpoint is not yet fully implemented as report generation is pending.
-    # For now, we will return a placeholder.
-    # In the future, this will load the report from the StateStore.
-    raise HTTPException(status_code=501, detail="Report generation is not yet implemented.")
+    report_filename = f"executive_report_{job_id}.pdf"
 
-    media_types = {
-        "docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-        "xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        "pdf": "application/pdf"
-    }
+    try:
+        # Check if the report already exists in the StateStore (caching)
+        report_bytes = state_store.load_artifact_as_bytes(job_id, f"reports/{report_filename}")
 
-    filename = f"report_{job_id}.{format}"
-    return FileResponse(report_path, media_type=media_types[format], filename=filename)
+        if report_bytes is None:
+            # If not, generate it, save it, and then load it
+            print(f"Report for job {job_id} not found. Generating...")
+            report_service = ReportService(job_id, state_store)
+            report_bytes = report_service.generate_report()
+
+            # Save the newly generated report for future requests
+            state_store.save_report_artifact(job_id, report_filename, report_bytes)
+            print(f"Report for job {job_id} saved to StateStore.")
+
+        media_type = "application/pdf"
+        headers = {
+            'Content-Disposition': f'attachment; filename="{report_filename}"'
+        }
+
+        return Response(content=report_bytes, media_type=media_type, headers=headers)
+
+    except FileNotFoundError as e:
+        raise HTTPException(status_code=404, detail=f"Could not generate report: {e}")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"An unexpected error occurred: {e}")
 
 import os
 
