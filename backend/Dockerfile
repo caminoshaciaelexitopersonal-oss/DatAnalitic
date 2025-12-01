@@ -1,5 +1,5 @@
 # Usa una imagen oficial de Python como imagen base
-FROM python:3.11-slim
+FROM python:3.12-slim
 
 # Instala dependencias del SO necesarias
 RUN apt-get update && apt-get install -y --no-install-recommends \
