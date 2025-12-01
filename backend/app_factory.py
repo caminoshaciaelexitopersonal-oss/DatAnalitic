@@ -20,6 +20,7 @@ from backend.wpa.powerbi.routers.powerbi_router import router as powerbi_router
 from backend.mpa.dtl.api import router as dtl_router
 from backend.mpa.delivery.router import router as delivery_router
 from backend.core.auth.api import router as auth_router
+from backend.agent.router import router as agent_router
 
 def create_app():
     app = FastAPI(title="SADI API", version="1.0")
@@ -52,6 +53,7 @@ def create_app():
     unified_router.include_router(auto_ml_router, prefix="/wpa/auto-ml", tags=["WPA - AutoML"])
     unified_router.include_router(powerbi_router, prefix="/wpa/powerbi")
     unified_router.include_router(intelligent_router, prefix="/wpa/router")
+    unified_router.include_router(agent_router) # Includes the /agent prefix
 
     app.include_router(unified_router)
     app.include_router(auth_router)
