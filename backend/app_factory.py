@@ -60,15 +60,15 @@ def create_app():
 
     @app.on_event("startup")
     async def startup_event():
-        from backend.core.database import engine, Base
-        from backend.core.state_store import get_state_store
+        from backend.core.state_store import get_state_store, Base
         from backend.core.security import initialize_default_admin
         from backend.wpa.powerbi import models as powerbi_models
 
-        # Create all tables
-        Base.metadata.create_all(bind=engine)
-
         state_store = get_state_store()
+
+        # Create all tables
+        Base.metadata.create_all(bind=state_store.engine)
+
         db = state_store.SessionLocal()
         try:
             initialize_default_admin(db)
